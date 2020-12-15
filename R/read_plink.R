@@ -1,5 +1,7 @@
+# These functions are been adapted from the read.bim() and read.plink() functions of the snpStats package
+# adaptations were made to prevent the entire bim file from being read in each time a locus is processed
 
-read.bim.custom = function(bim, as.env=T) {   ##20-09-24jw: renamed to custom
+read.bim.custom = function(bim, as.env=T) {
   if (!grepl("\\.bim$", bim)) bim = paste0(bim, ".bim")
   df.bim = data.table::fread(bim, data.table=F)
   if (ncol(df.bim) == 6) {
@@ -18,10 +20,9 @@ read.bim.custom = function(bim, as.env=T) {   ##20-09-24jw: renamed to custom
   }
 }
 
-#for clarity, I just commented out the original code I replaced so you can see the original, and added comments with my new code
-#if calling this with df.bim=NULL as default, it operates almost the same as before
-#only real difference is that it now does the rownames(df.bim) bit before potentially subsetting, which would be marginally slower
-#but obvs the point is not to call it with df.bim=NULL anyway :-). Just wanted to leave the option intact for now
+# original code has been commented out, and modifications are indicated with comments
+# if calling this with df.bim=NULL as default, it operates almost the same as the original read.plink() function from the snpStats package
+# main difference is that it now does the rownames(df.bim) bit before potentially subsetting
 read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9"), sep = ".", select.subjects = NULL, select.snps = NULL) {
     lb <- nchar(bed)
     ext <- substr(bed, lb - 3, lb)
@@ -34,9 +35,9 @@ read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9
     if (missing(bim)) bim <- paste(stub, ".bim", sep = "")
     if (missing(fam)) fam <- paste(stub, ".fam", sep = "")
     
-    if (is.null(df.bim)) df.bim = read.bim.custom(bim, as.env=F) #CdL added; ##20-09-24jw: renamed to custom
-    if (is.environment(df.bim)) { #CdL added
-      snps = df.bim$bim$snp.name  ## 20-10-08: subsetting based on SNP name rather than rownames
+    if (is.null(df.bim)) df.bim = read.bim.custom(bim, as.env=F) # added 
+    if (is.environment(df.bim)) { # added
+      snps = df.bim$bim$snp.name  # subsetting based on SNP name rather than rownames
     } else {
       snps = rownames(df.bim) # orig code
     }
@@ -48,22 +49,22 @@ read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9
             select.snps <- match(select.snps, snps)
             if (any(is.na(select.snps))) stop("unrecognised snp selected")
         } else if (is.numeric(select.snps)) {
-            tot.snps = ifelse(is.environment(df.bim), nrow(df.bim$bim), nrow(df.bim)) #CdL added 
-            if (min(select.snps) < 1 || max(select.snps) > tot.snps) stop("selected snp subscript out of range") #CdL: modification of line below           
+            tot.snps = ifelse(is.environment(df.bim), nrow(df.bim$bim), nrow(df.bim)) # added 
+            if (min(select.snps) < 1 || max(select.snps) > tot.snps) stop("selected snp subscript out of range") # modification of line below           
 #            if (min(select.snps) < 1 || max(select.snps) > nrow(df.bim)) stop("selected snp subscript out of range") 
             select.snps <- as.integer(select.snps)
         }
         else stop("unrecognised snp selection")
         if (any(duplicated(select.snps))) stop("snp selection contains duplicates")
         select.snps <- sort(select.snps)
-        if (is.environment(df.bim)) { #CdL: added if-statement; original was just the line in the else clause
+        if (is.environment(df.bim)) { # added if-statement; original was just the line in the else clause
           df.bim <- df.bim$bim[select.snps, ]                  
         } else {
           df.bim <- df.bim[select.snps, ]
         }
         snps <- snps[select.snps]
-    } else { #CdL added this else clause
-      if (is.environment(df.bim)) df.bim = df.bim$env #pulling the data frame out of the env if needed
+    } else { # added this else clause
+      if (is.environment(df.bim)) df.bim = df.bim$env # pulling the data frame out of the env if needed
     }
 #    if (ncol(df.bim) == 6) { # moved these into the read.bim function
 #        names(df.bim) <- c("chromosome", "snp.name", "cM", "position", "allele.1", "allele.2")
@@ -83,7 +84,7 @@ read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9
         if (any(duplicated(select.subjects))) stop("subject selection contains duplicates")
         select.subjects <- sort(select.subjects)
 #        df.fam <- df.bim[select.subjects, ] 
-        df.fam <- df.fam[select.subjects, ] #CdL: changed this from line above, clearly that's a bug
+        df.fam <- df.fam[select.subjects, ] # changed this from line above, clearly that's a bug
     }
     ped <- as.character(df.fam[, 1])
     mem <- as.character(df.fam[, 2])
@@ -97,7 +98,7 @@ read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9
     else id <- ped
     names(df.fam) <- c("pedigree", "member", "father", "mother", "sex", "affected")
     rownames(df.fam) <- id
-    invisible(getNamespace("snpStats")) # TODO: find a better solution
+    invisible(getNamespace("snpStats")) # added
     gt <- .Call("readbed", bed, id, snps, select.subjects, select.snps, PACKAGE = "snpStats")
     list(genotypes = gt, fam = df.fam, map = df.bim)
 }

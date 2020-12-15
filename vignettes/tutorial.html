@@ -1,37 +1,101 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <meta name="author" content="Josefin Werme, CTG Lab, VU Amsterdam" />
 
 
 <title>LAVA TUTORIAL</title>
 
+<script>// Hide empty <a> tag within highlighted CodeBlock for screen reader accessibility (see https://github.com/jgm/pandoc/issues/6352#issuecomment-626106786) -->
+// v0.0.1
+// Written by JooYoung Seo (jooyoung@psu.edu) and Atsushi Yasumoto on June 1st, 2020.
+
+document.addEventListener('DOMContentLoaded', function() {
+  const codeList = document.getElementsByClassName("sourceCode");
+  for (var i = 0; i < codeList.length; i++) {
+    var linkList = codeList[i].getElementsByTagName('a');
+    for (var j = 0; j < linkList.length; j++) {
+      if (linkList[j].innerHTML === "") {
+        linkList[j].setAttribute('aria-hidden', 'true');
+      }
+    }
+  }
+});
+</script>
+<style type="text/css">
+a.anchor-section {margin-left: 10px; visibility: hidden; color: inherit;}
+a.anchor-section::before {content: '#';}
+.hasAnchor:hover a.anchor-section {visibility: visible;}
+</style>
+<script>// Anchor sections v1.0 written by Atsushi Yasumoto on Oct 3rd, 2020.
+document.addEventListener('DOMContentLoaded', function() {
+  // Do nothing if AnchorJS is used
+  if (typeof window.anchors === 'object' && anchors.hasOwnProperty('hasAnchorJSLink')) {
+    return;
+  }
+
+  const h = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+  // Do nothing if sections are already anchored
+  if (Array.from(h).some(x => x.classList.contains('hasAnchor'))) {
+    return null;
+  }
+
+  // Use section id when pandoc runs with --section-divs
+  const section_id = function(x) {
+    return ((x.classList.contains('section') || (x.tagName === 'SECTION'))
+            ? x.id : '');
+  };
+
+  // Add anchors
+  h.forEach(function(x) {
+    const id = x.id || section_id(x.parentElement);
+    if (id === '') {
+      return null;
+    }
+    let anchor = document.createElement('a');
+    anchor.href = '#' + id;
+    anchor.classList = ['anchor-section'];
+    x.classList.add('hasAnchor');
+    x.appendChild(anchor);
+  });
+});
+</script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
 
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css" data-origin="pandoc">
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { display: inline-block; line-height: 1.25; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
+code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+code.sourceCode { white-space: pre-wrap; }
+code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -51,7 +115,7 @@ pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-le
 div.sourceCode
   {   }
 @media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
@@ -118,9 +182,6 @@ padding-right: 2em;
 font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 font-size: 14px;
 line-height: 1.35;
-}
-#header {
-text-align: center;
 }
 #TOC {
 clear: both;
@@ -289,7 +350,8 @@ code > span.st { color: #d14; }
 code > span.co { color: #888888; font-style: italic; } 
 code > span.ot { color: #007020; } 
 code > span.al { color: #ff0000; font-weight: bold; } 
-code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
 </style>
 
 
@@ -383,13 +445,14 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <span id="cb2-9"><a href="#cb2-9"></a>                      <span class="dt">phenos=</span><span class="kw">c</span>(<span class="st">&quot;depression&quot;</span>,<span class="st">&quot;neuro&quot;</span>,<span class="st">&quot;bmi&quot;</span>))</span>
 <span id="cb2-10"><a href="#cb2-10"></a></span>
 <span id="cb2-11"><a href="#cb2-11"></a><span class="co"># inspect the processed input data</span></span>
-<span id="cb2-12"><a href="#cb2-12"></a><span class="kw">str</span>(input<span class="op">$</span>sum.stats)  <span class="co"># processed summary statistics</span></span>
-<span id="cb2-13"><a href="#cb2-13"></a>input<span class="op">$</span>info            <span class="co"># processed input info file, with additional variables N, prop_cases, binary computed by process.input()</span></span>
-<span id="cb2-14"><a href="#cb2-14"></a>input<span class="op">$</span>sample.overlap  <span class="co"># sample overlap file</span></span>
-<span id="cb2-15"><a href="#cb2-15"></a><span class="kw">head</span>(input<span class="op">$</span>ref<span class="op">$</span>bim)   <span class="co"># bim file from reference data</span></span>
-<span id="cb2-16"><a href="#cb2-16"></a>  </span>
-<span id="cb2-17"><a href="#cb2-17"></a><span class="co"># find out more about this function</span></span>
-<span id="cb2-18"><a href="#cb2-18"></a>?<span class="kw">process.input</span>()</span></code></pre></div>
+<span id="cb2-12"><a href="#cb2-12"></a><span class="kw">ls</span>(input)               <span class="co"># this is actually an environment; hence ls() rather than str()</span></span>
+<span id="cb2-13"><a href="#cb2-13"></a><span class="kw">ls</span>(input<span class="op">$</span>sum.stats)   <span class="co"># processed summary statistics</span></span>
+<span id="cb2-14"><a href="#cb2-14"></a>input<span class="op">$</span>info            <span class="co"># processed input info file, with additional variables N, prop_cases, binary computed by process.input()</span></span>
+<span id="cb2-15"><a href="#cb2-15"></a>input<span class="op">$</span>sample.overlap  <span class="co"># sample overlap file</span></span>
+<span id="cb2-16"><a href="#cb2-16"></a><span class="kw">head</span>(input<span class="op">$</span>ref<span class="op">$</span>bim)   <span class="co"># bim file from reference data</span></span>
+<span id="cb2-17"><a href="#cb2-17"></a>  </span>
+<span id="cb2-18"><a href="#cb2-18"></a><span class="co"># find out more about this function</span></span>
+<span id="cb2-19"><a href="#cb2-19"></a>?<span class="kw">process.input</span>()</span></code></pre></div>
 </div>
 <div id="read-in-locus-info-and-create-a-locus-object" class="section level2">
 <h2>Read in locus info and create a locus object</h2>
@@ -418,54 +481,29 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 </ul>
 <p>More information about the return variables can be found in the function documentation</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">str</span>(locus)        <span class="co"># inspect locus object</span></span>
-<span id="cb4-2"><a href="#cb4-2"></a><span class="co">#&gt; List of 14</span></span>
-<span id="cb4-3"><a href="#cb4-3"></a><span class="co">#&gt;  $ id       : int 100</span></span>
-<span id="cb4-4"><a href="#cb4-4"></a><span class="co">#&gt;  $ chr      : int 1</span></span>
-<span id="cb4-5"><a href="#cb4-5"></a><span class="co">#&gt;  $ start    : int 113418038</span></span>
-<span id="cb4-6"><a href="#cb4-6"></a><span class="co">#&gt;  $ stop     : int 114664387</span></span>
-<span id="cb4-7"><a href="#cb4-7"></a><span class="co">#&gt;  $ K        : int 260</span></span>
-<span id="cb4-8"><a href="#cb4-8"></a><span class="co">#&gt;  $ K.block  : int 2231</span></span>
-<span id="cb4-9"><a href="#cb4-9"></a><span class="co">#&gt;  $ delta    : num [1:260, 1:3] -0.001907 0.002891 -0.005859 0.000558 0.002492 ...</span></span>
-<span id="cb4-10"><a href="#cb4-10"></a><span class="co">#&gt;   ..- attr(*, &quot;dimnames&quot;)=List of 2</span></span>
-<span id="cb4-11"><a href="#cb4-11"></a><span class="co">#&gt;   .. ..$ : NULL</span></span>
-<span id="cb4-12"><a href="#cb4-12"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-13"><a href="#cb4-13"></a><span class="co">#&gt;  $ sigma    : num [1:3, 1:3] 8.92e-06 1.32e-06 1.98e-07 1.32e-06 2.65e-06 ...</span></span>
-<span id="cb4-14"><a href="#cb4-14"></a><span class="co">#&gt;   ..- attr(*, &quot;dimnames&quot;)=List of 2</span></span>
-<span id="cb4-15"><a href="#cb4-15"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-16"><a href="#cb4-16"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-17"><a href="#cb4-17"></a><span class="co">#&gt;  $ omega    : num [1:3, 1:3] 1.39e-06 -2.07e-07 -4.34e-07 -2.07e-07 4.48e-07 ...</span></span>
-<span id="cb4-18"><a href="#cb4-18"></a><span class="co">#&gt;   ..- attr(*, &quot;dimnames&quot;)=List of 2</span></span>
-<span id="cb4-19"><a href="#cb4-19"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-20"><a href="#cb4-20"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-21"><a href="#cb4-21"></a><span class="co">#&gt;  $ omega.cor: num [1:3, 1:3] 1 -0.263 -0.426 -0.263 1 ...</span></span>
-<span id="cb4-22"><a href="#cb4-22"></a><span class="co">#&gt;   ..- attr(*, &quot;dimnames&quot;)=List of 2</span></span>
-<span id="cb4-23"><a href="#cb4-23"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-24"><a href="#cb4-24"></a><span class="co">#&gt;   .. ..$ : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-25"><a href="#cb4-25"></a><span class="co">#&gt;  $ N        : Named num [1:3] 500199 377980 377749</span></span>
-<span id="cb4-26"><a href="#cb4-26"></a><span class="co">#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-27"><a href="#cb4-27"></a><span class="co">#&gt;  $ phenos   : chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-28"><a href="#cb4-28"></a><span class="co">#&gt;  $ binary   : logi [1:3, 1] TRUE FALSE FALSE</span></span>
-<span id="cb4-29"><a href="#cb4-29"></a><span class="co">#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3] &quot;depression&quot; &quot;neuro&quot; &quot;bmi&quot;</span></span>
-<span id="cb4-30"><a href="#cb4-30"></a><span class="co">#&gt;  $ snps     : chr [1:2231] &quot;rs2360008&quot; &quot;rs1237670&quot; &quot;rs1235629&quot; &quot;rs1216539&quot; ...</span></span>
-<span id="cb4-31"><a href="#cb4-31"></a>?<span class="kw">process.locus</span>()  <span class="co"># check out the function documentation</span></span></code></pre></div>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="co">#&gt; &lt;environment: 0x7fbb0645d8f0&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3"></a>?<span class="kw">process.locus</span>()  <span class="co"># check out the function documentation</span></span></code></pre></div>
 </div>
 <div id="perform-the-univariate-test" class="section level2">
 <h2>Perform the univariate test</h2>
 <p>If we determine the amount of local genetic signal for all phenotypes of interest, we can filter out unassociated loci and dramatically speed up the local r<sub><em>g</em></sub> analysis. This is done with the univariate test.</p>
-<p>After obtaining the locus object, we can pass this object directly to the run.univ() function in order to perform the univariate test for all phenotypes - NOTE: a subset of phenotypes may be analysed by passing an ID vector to the ‘pheno’ argument</p>
+<p>After obtaining the locus object, we can pass this object directly to the run.univ() function in order to perform the univariate test for all phenotypes</p>
+<ul>
+<li>NOTE: a subset of phenotypes may be analysed by passing an ID vector to the ‘pheno’ argument</li>
+</ul>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">run.univ</span>(locus)</span>
-<span id="cb5-2"><a href="#cb5-2"></a><span class="co">#&gt;         phen         var          p</span></span>
-<span id="cb5-3"><a href="#cb5-3"></a><span class="co">#&gt; 1 depression 1.39200e-06 0.04240950</span></span>
-<span id="cb5-4"><a href="#cb5-4"></a><span class="co">#&gt; 2      neuro 4.47714e-07 0.03154340</span></span>
-<span id="cb5-5"><a href="#cb5-5"></a><span class="co">#&gt; 3        bmi 7.44367e-07 0.00146622</span></span></code></pre></div>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="co">#&gt;         phen      h2.obs h2.latent          p</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a><span class="co">#&gt; 1 depression 8.05125e-05        NA 0.04240950</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a><span class="co">#&gt; 2      neuro 1.16406e-04        NA 0.03154340</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a><span class="co">#&gt; 3        bmi 1.93535e-04        NA 0.00146622</span></span></code></pre></div>
 <p>Here, there was little evidence of any signal for either phenotypes, and there will be little point in testing the local r<sub><em>g</em></sub>.</p>
 <p>If we check another locus however:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a>locus =<span class="st"> </span><span class="kw">process.locus</span>(loci[<span class="dv">3</span>,], input)</span>
 <span id="cb6-2"><a href="#cb6-2"></a><span class="kw">run.univ</span>(locus)</span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="co">#&gt;         phen         var           p</span></span>
-<span id="cb6-4"><a href="#cb6-4"></a><span class="co">#&gt; 1 depression 4.31788e-06 4.13399e-07</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="co">#&gt; 2      neuro 2.13106e-06 1.25993e-14</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a><span class="co">#&gt; 3        bmi 3.62544e-06 6.60429e-32</span></span></code></pre></div>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="co">#&gt;         phen      h2.obs h2.latent           p</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="co">#&gt; 1 depression 0.000260236        NA 4.13399e-07</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a><span class="co">#&gt; 2      neuro 0.000573255        NA 1.25993e-14</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a><span class="co">#&gt; 3        bmi 0.000975242        NA 6.60429e-32</span></span></code></pre></div>
 <p>we see that there is plenty of signal for all phenotypes, and we can proceed with the bivariate test</p>
 </div>
 <div id="bivariate-local-rg-analysis" class="section level2">
@@ -473,12 +511,12 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <p>To proceed with the bivariane rg analysis, we simply pass the locus object the run.bivar() function</p>
 <p><strong>TODO: MAKE BIVAR FUNC THAT JUST ANALYSES ALL COMBINATIONS OF PHENOS!!</strong></p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="kw">run.bivar</span>(locus)</span>
-<span id="cb7-2"><a href="#cb7-2"></a><span class="co">#&gt;         pred       rho rho.ci.low rho.ci.high         r2 r2.ci.low r2.ci.high</span></span>
-<span id="cb7-3"><a href="#cb7-3"></a><span class="co">#&gt; 1 depression 0.0723039   -0.18291     0.33091 0.00522785         0    0.11306</span></span>
-<span id="cb7-4"><a href="#cb7-4"></a><span class="co">#&gt; 2      neuro 0.1069490   -0.10267     0.30983 0.01143810         0    0.09614</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="co">#&gt;        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="co">#&gt; 1 depression   bmi 0.0723039  -0.18006   0.32481 0.00522785        0  0.10661</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a><span class="co">#&gt; 2      neuro   bmi 0.1069490  -0.09356   0.30839 0.01143810        0  0.09511</span></span>
 <span id="cb7-5"><a href="#cb7-5"></a><span class="co">#&gt;          p</span></span>
-<span id="cb7-6"><a href="#cb7-6"></a><span class="co">#&gt; 1 0.566464</span></span>
-<span id="cb7-7"><a href="#cb7-7"></a><span class="co">#&gt; 2 0.301766</span></span></code></pre></div>
+<span id="cb7-6"><a href="#cb7-6"></a><span class="co">#&gt; 1 0.566516</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co">#&gt; 2 0.299402</span></span></code></pre></div>
 <p>And if we look at the description of this function, we see that this too can take a phenotype vector, should only a subset of phenotypes be analysed. If multiple phenotypes are entered simultaneously, the last phenotype will be treated as the phenotype of interest, and separate bivariate tests will be performed between this phenotype and all others. (Note: this test is symmetric, which phenotype is considered the ‘outcome’ here doesn’t matter).</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a>?<span class="kw">run.bivar</span>()</span></code></pre></div>
 <p>If we want to analyse the bivariate local r<sub><em>g</em></sub> between a subset phenotypes <strong>[…]</strong></p>
