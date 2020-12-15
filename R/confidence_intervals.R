@@ -1,17 +1,9 @@
-#The functions do some bounds checking on correlations truncating them to just below the bound to stop the matrixsampling::rwishart function from aborting
-#(I will pull apart the matrixsampling::rwishart function at some point to improve efficiency further, we can fix this then too)
-#In general though, assumes these to have been validated in advance (ie. omega.x is invertible, etc.)
-#Output includes the observed value used for reference (note that for corrs/R2 of 1 (or -1) this will be slightly below 1 because of the bounds correcting,
-# so I'd generally use original estimates here and not directly output the estimate value from these functions)
+# The functions do some bounds checking on correlations truncating them to just below the bound to stop the matrixsampling::rwishart function from aborting
+# In general, its assumed that the input has been validated in advance (ie. omega.x is invertible, etc.)
 
 
-#CIs are for correlations in omega
-#It works for any size of omega, if more than 2x2 it computes CI's for each correlation
-#It's more efficient to do that in one go rather than do all the pairwise correlations separately
-#!!! HOWEVER: it seems that due to a check inside the matrixsampling::rwishart function it won't work if omega as a whole is not invertible (it will complain about Theta not being positive)
-#We can fix that later once we deconstruct the matrixsampling::rwishart function itself, but for now might be best only to use this for individual correlations,
-#just iterating over all pairs instead
-ci.bivariate = function(K, omega, sigma, n.iter=10000) {  # K = locus$K; omega = locus$omega; sigma = locus$sigma
+### BIVARIATE ###
+ci.bivariate = function(K, omega, sigma, n.iter=10000) {  
   S = diag(sqrt(diag(omega)))
   corrs = solve(S) %*% omega %*% solve(S)
   corrs[corrs >= 1] = 0.99999; corrs[corrs <= -1] = -0.99999; diag(corrs) = 1
@@ -35,17 +27,19 @@ ci.bivariate = function(K, omega, sigma, n.iter=10000) {  # K = locus$K; omega =
     out$ci.rho.high = qq[2,]
     
     # quantiles r2
-    qq = apply(r^2, 1, quantile, c(0.025, 0.975), na.rm=T)  #JW
+    qq = apply(r^2, 1, quantile, c(0.025, 0.975), na.rm=T)
     qq[qq < -1] = -1; qq[qq > 1] = 1
     out$ci.r2.low = qq[1,]
     out$ci.r2.high = qq[2,]
-    if (sign(out$ci.rho.low)!=sign(out$ci.rho.high)) out$ci.r2.low = 0  # set r2 CI to 0 if rho CI spans 1
+    if (sign(out$ci.rho.low)!=sign(out$ci.rho.high)) out$ci.r2.low = 0  # set r2 lower to 0 if rho CI spans 0
   }
-  return(round(out,5))  #jw (round)
+  return(round(out,5))
 }
 
-#expects omega.x to be invertible
-# K=locus$K; omega=locus$omega; sigma=locus$sigma; n.iter=10000
+
+
+### MULTILPE REG ###
+# expects omega.x to be invertible
 ci.multivariate = function(K, omega, sigma, n.iter=10000) {
   P = dim(omega)[1]
   S = diag(sqrt(diag(omega)))
@@ -54,7 +48,7 @@ ci.multivariate = function(K, omega, sigma, n.iter=10000) {
   omega = S %*% corrs %*% S
   fit = omega[-P,P] %*% solve(omega[-P,-P]) %*% omega[-P,P]
   if (fit >= omega[P,P]) omega[P,P] = fit/0.99999
-  #increasing omega_Y to fit if r2 > 1; setting r2 slightly below 1 in that case, since otherwise the matrixsampling::rwishart function will fail 
+  # increasing omega_Y to fit if r2 > 1; setting r2 slightly below 1 in that case, since otherwise the matrixsampling::rwishart function will fail 
   
   gamma.ss = solve(corrs[-P,-P]) %*% corrs[-P,P]
   r2 = max(0, fit/omega[P,P])
@@ -63,18 +57,19 @@ ci.multivariate = function(K, omega, sigma, n.iter=10000) {
   if (!is.null(draws)) {
     est = apply(draws, 3, estimate.std, sigma)  
     qq = apply(est, 1, quantile, c(0.025, 0.975), na.rm=T)
-    #qq[qq < -1] = -1; qq[qq > 1] = 1
   } else {
     qq = matrix(NA, nrow=2, ncol=P)
   }
   qq.r2 = qq[,P]; qq.r2[qq.r2 < 0] = 0; qq.r2[qq.r2 > 1] = 1;
 
   ci = list(
-    gamma = round(data.frame(est=gamma.ss, ci.low=qq[1,-P], ci.high=qq[2,-P]),5),  #jw (round)
+    gamma = round(data.frame(est=gamma.ss, ci.low=qq[1,-P], ci.high=qq[2,-P]),5), 
     r2 = round(data.frame(est=r2, ci.low=qq.r2[1], ci.high=qq.r2[2]),5)
   )
   return(ci)
 }
+
+
 
 estimate.std = function(draw, sigma) {
   P = dim(sigma)[1]
@@ -83,3 +78,39 @@ estimate.std = function(draw, sigma) {
   r2 = o[-P,P] %*% g
   return(c(g,r2))
 }
+
+
+
+### PARTIAL COR ###
+# xy.index must be two unique index values, z.index any number (>0) of values not in xy.index
+# expects omega.z to be invertible
+# returns vector with three values: estimate (for reference), ci.low, ci.high
+ci.pcor = function(K, xy.index, z.index, omega, sigma, n.iter=10000) {
+  index = check.index(xy.index, z.index, dim(omega)[1]); out = rep(NA,3)
+  if (is.null(index)) return(out) # just failing quietly for now
+  
+  omega = omega[index,index]; sigma = sigma[index,index]  
+  P = dim(omega)[1]; Pw = P - 1; Pz = Pw - 1;
+  S = diag(sqrt(diag(omega)))
+  corrs = solve(S) %*% omega %*% solve(S)
+  corrs[corrs >= 1] = 0.99999; corrs[corrs <= -1] = -0.99999; diag(corrs) = 1
+  omega = S %*% corrs %*% S
+  
+  fit.x = omega[1:Pz,Pw] %*% solve(omega[1:Pz,1:Pz]) %*% omega[1:Pz,Pw]
+  fit.y = omega[1:Pz,P] %*% solve(omega[1:Pz,1:Pz]) %*% omega[1:Pz,P]  
+  if (omega[Pw,Pw] <= fit.x) omega[Pw,Pw] = fit.x / 0.99999 #scale var up to have R2 slightly below 1
+  fit.xy = omega[1:Pw,P] %*% solve(omega[1:Pw,1:Pw]) %*% omega[1:Pw,P]
+  if (omega[P,P] <= fit.xy) omega[P,P] = fit.xy / 0.99999 #scale var up to have R2 slightly below 1
+  
+  p.cov = omega[Pw,P] - t(omega[1:Pz,Pw]) %*% solve(omega[1:Pz,1:Pz]) %*% omega[1:Pz,P]
+  p.vars = c(omega[Pw,Pw] - fit.x, omega[P,P] - fit.y)
+  out[1] = ifelse(all(p.vars > 0), p.cov/sqrt(prod(p.vars)), NA)
+  
+  draws = tryCatch(matrixsampling::rwishart(n.iter, K, Sigma=sigma/K, Theta=omega), error=function(e){return(NULL)}) 
+  if (!is.null(draws)) {
+    est = apply(draws, 3, estimate.pcor, sigma)  
+    out[2:3] = quantile(est, c(0.025, 0.975), na.rm=T)    
+    out[out < -1] = -1; out[out > 1] = 1
+  }
+  return(round(out,5))
+}                    

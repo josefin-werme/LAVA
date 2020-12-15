@@ -1,34 +1,6 @@
 
-#### METHOD OF MOMENTS 
-estimate.moments = function(delta, sigma, K, null.idx=0, null.omega=NULL, only.omega=F) {
-	#x delta=locus$delta; sigma=locus$sigma; K=locus$K; null.idx=0; only.omega=F
-	delta = as.matrix(delta)
-	P = ncol(delta)
-	
-	if (P!=1) {; Px = P-1; x = 1:Px; y = P	}
-	
-	# Omega
-	if (null.idx==0) { omega = t(delta)%*%delta / K - sigma } else { omega = null.omega }
-	if (only.omega) return(omega)
-	
-	# Gamma / tau
-	gamma = t(omega[y,x] %*% solve(omega[x,x]))
-	tau = omega[y,y] - omega[y,x] %*% solve(omega[x,x]) %*% omega[x,y]
-	
-	if (null.idx) {
-		gamma.null = rep(0,P)
-		gamma.null[-null.idx] = gamma
-		return(list(gamma=gamma.null, tau=tau))
-	} else {
-		# standardise
-		gamma.std = rep(NA,Px); for (p in x) { gamma.std[p] = gamma[p]*sqrt(omega[p,p]/omega[y,y]) }
-		tau.std = tau / omega[y,y]
-		r2 = 1 - tau.std
-		return(list(omega=omega, omega.xy=omega[P,-P], gamma=c(gamma), gamma.std=c(gamma.std), tau=tau, tau.std=tau.std, r2=r2))
-	}
-}
 
-#' Perform univariate and bivariate analysis in one go
+#' Perform univariate and bivariate analysis, with univariate filtering
 #' 
 #' Will only perform bivariate test for phenotypes that pass the univariate significance threshold.
 #' If multiple phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
@@ -46,7 +18,8 @@ estimate.moments = function(delta, sigma, K, null.idx=0, null.omega=NULL, only.o
 #' 
 #' @export
 #' 
-run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), return.unanalysed=F) { #x univ.thresh=1e-5
+run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), return.unanalysed=F) { 
+	#x univ.thresh=1e-5
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
 	P = length(phenos)
 	
@@ -62,6 +35,9 @@ run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-
 	return(list(univ=univ, bivar=bivar))
 }
 #x run.bivar(locus, phenos = c("rheuma","hypothyriodism"), adap.thresh=adap.thresh, pred.out=T) 
+
+
+
 
 # Univariate p-values
 univariate.test = function(locus, phenos=NULL) {
@@ -95,6 +71,7 @@ run.univ = function(locus, phenos=NULL) {
 	univ$p = signif(univariate.test(locus, phenos), 6)
 	return(univ)
 }
+
 	
 #' Bivariate local genetic correlation analysis
 #' 
@@ -135,36 +112,21 @@ run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, 
 		# p-values
 		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K=locus$K, omega=mom$omega, sigma=locus$sigma[c(phenos[i],Y),c(phenos[i],Y)], adap.thresh=adap.thresh), 6) }	## 20/09/18: updated integral.p()
 	}
-	# v0.0.4: filter any values that are too far out of bounds
-	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim) # first param must be gamma/rho
+	# filter any estimates that are too far out of bounds
+	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param must be gamma/rho
 																									# params just needs to list all that will be set to NA if rho / gamma is too far out of bounds
-	## 20-09-24: cap out of bounds values to -1 / 1
+	# cap out of bounds values to -1 / 1
 	for (p in params) { bivar[[p]] = cap.values(bivar[[p]]) }
-	colnames(bivar)[which(colnames(bivar)=="gamma.std")] = "rho"	## 20-09-24: change output colnames from gamma.std to rho
+	colnames(bivar)[which(colnames(bivar)=="gamma.std")] = "rho"
 	
 	return.vars = c("phen1","phen2","rho","rho.lower","rho.upper","r2","r2.lower","r2.upper","p")
 	return(bivar[,return.vars])
 }
-# run.bivar(locus, c("whr","neuro","depression"), adap.thresh=NULL, param.lim=.9)
-# locus$omega.cor[c("depression","whr"),c("depression","whr")]
+#x run.bivar(locus, c("whr","neuro","depression"), adap.thresh=NULL, param.lim=.9)
+#x locus$omega.cor[c("depression","whr"),c("depression","whr")]
 
 
-# v0.0.4: remove parameters that are excessively out of bounds
-filter.params = function(data, params, param.lim=1.25, multreg=F) {	# data=bivar; params = c(params, ci.params); param.lim = .25
-	out.of.bounds = abs(data[params[1]]) > abs(param.lim)			# assumes first param is gamma/rho
-	
-	if (any(out.of.bounds)) {
-		# get phenotype colnames
-		if (!multreg) { phen.cols = c("phen1","phen2") } else { phen.cols = c("predictors","outcome") }
-		# print warning
-		message("Warning: Estimates too far out of bounds (+-",param.lim,") for phenotype(s) ",
-				paste0(paste0(data[phen.cols[1]][out.of.bounds]," ~ ",data[phen.cols[2]][out.of.bounds]," (",signif(data[params[1]][out.of.bounds],4),")"),collapse=", "),
-				" in locus ",locus$id,". Values will be set to NA. To change this threshold, modify the 'param.lim' argument")  # actually dont need to pass locus
-		# set to NA
-		if (!multreg) { data[out.of.bounds, params] = NA } else { data[,params] = NA }
-	}
-	return(data)
-}
+
 
 
 #' Multiple local genetic regression analysis
@@ -218,8 +180,8 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			}
 			# p-values
 			if (p.values) {
-				pvals = try(integral.p(multivariate.integral, K = locus$K, omega = mom$omega, sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)], adap.thresh=adap.thresh), silent=T)
-				cond[[j]][[k]]$p = signif(pvals, 6)		## 20-09-24: added signif()
+				pvals = try(integral.p(multivariate.integral, K = locus$K, omega = mom$omega, sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)], adap.thresh=adap.thresh), silent=T) 	# TODO: why subsetting sigma here but not omega?
+				cond[[j]][[k]]$p = signif(pvals, 6)
 			}
 			# filter estimates that are too far out of bounds 
 			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T) # first param must be gamma/rho
@@ -234,23 +196,6 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 	return(cond)
 }
 #x run.multireg(locus, only.full.model=T, param.lim=.5)
-
-
-# function for capping values at -1 / 1
-cap.values = function(values, lim = c(-1,1)) {
-	for (i in 1:length(values)) {
-		if (is.na(values[i])) next
-		if (values[i] > max(lim)) {
-			values[i] = max(lim)
-		} else if (values[i] < min(lim)) {
-			values[i] = min(lim)
-		}
-	}
-	return(values)
-}
-#x values = c(NA, .2, -3, -.5, 4, 1.234235, .9223423)
-#x cap.values(values)
-
 
 
 
@@ -287,7 +232,7 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T,
 			r2[i] = run.multireg(locus, phenos[c(3:P,i)], only.full.model=T, p.values=F, CIs=F, suppress.message=T)[[1]][[1]]$r2[1]
 		}
 	}
-	out = data.frame(phen1=phenos[x], phen2=phenos[y], z=paste(phenos[z],collapse=";"), r2.p1_z = r2$x, r2.p2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
+	out = data.frame(phen1=phenos[x], phen2=phenos[y], z=paste(phenos[z],collapse=";"), r2.phen1_z = r2$x, r2.phen2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
 	
 	if (CIs) {
 		ci = signif(ci.pcor(K=locus$K, xy.index=c(x,y), z.index=z, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos]),6)
@@ -308,3 +253,42 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T,
 	return(as.data.frame(lapply(out, signif, 6)))
 }
 #x run.partial.cor(locus)
+
+
+
+
+
+
+# remove estimates that are excessively out of bounds
+filter.params = function(data, params, param.lim=1.25, multreg=F) {	
+	#x data=bivar; params = c(params, ci.params); param.lim = .25
+	out.of.bounds = abs(data[params[1]]) > abs(param.lim)			# assumes first param is gamma/rho
+	
+	if (any(out.of.bounds)) {
+		# get phenotype colnames
+		if (!multreg) { phen.cols = c("phen1","phen2") } else { phen.cols = c("predictors","outcome") }
+		# print warning
+		message("Warning: Estimates too far out of bounds (+-",param.lim,") for phenotype(s) ",
+				paste0(paste0(data[phen.cols[1]][out.of.bounds]," ~ ",data[phen.cols[2]][out.of.bounds]," (",signif(data[params[1]][out.of.bounds],4),")"),collapse=", "),
+				" in locus ",locus$id,". Values will be set to NA. To change this threshold, modify the 'param.lim' argument")  # actually dont need to pass locus
+		# set to NA
+		if (!multreg) { data[out.of.bounds, params] = NA } else { data[,params] = NA }
+	}
+	return(data)
+}
+
+
+# function for capping values at -1 / 1
+cap.values = function(values, lim = c(-1,1)) {
+	for (i in 1:length(values)) {
+		if (is.na(values[i])) next
+		if (values[i] > max(lim)) {
+			values[i] = max(lim)
+		} else if (values[i] < min(lim)) {
+			values[i] = min(lim)
+		}
+	}
+	return(values)
+}
+#x values = c(NA, .2, -3, -.5, 4, 1.234235, .9223423)
+#x cap.values(values)

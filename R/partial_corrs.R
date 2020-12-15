@@ -79,38 +79,6 @@ check.index = function(xy.index, z.index, P) {
   return(index) 
 }
 
-#xy.index must be two unique index values, z.index any number (>0) of values not in xy.index
-#expects omega.z to be invertible
-#returns vector with three values: estimate (for reference), ci.low, ci.high
-ci.pcor = function(K, xy.index, z.index, omega, sigma, n.iter=10000) {
-  index = check.index(xy.index, z.index, dim(omega)[1]); out = rep(NA,3)
-  if (is.null(index)) return(out) #just failing quietly for now
-
-  omega = omega[index,index]; sigma = sigma[index,index]  
-  P = dim(omega)[1]; Pw = P - 1; Pz = Pw - 1;
-  S = diag(sqrt(diag(omega)))
-  corrs = solve(S) %*% omega %*% solve(S)
-  corrs[corrs >= 1] = 0.99999; corrs[corrs <= -1] = -0.99999; diag(corrs) = 1
-  omega = S %*% corrs %*% S
-
-  fit.x = omega[1:Pz,Pw] %*% solve(omega[1:Pz,1:Pz]) %*% omega[1:Pz,Pw]
-  fit.y = omega[1:Pz,P] %*% solve(omega[1:Pz,1:Pz]) %*% omega[1:Pz,P]  
-  if (omega[Pw,Pw] <= fit.x) omega[Pw,Pw] = fit.x / 0.99999 #scale var up to have R2 slightly below 1
-  fit.xy = omega[1:Pw,P] %*% solve(omega[1:Pw,1:Pw]) %*% omega[1:Pw,P]
-  if (omega[P,P] <= fit.xy) omega[P,P] = fit.xy / 0.99999 #scale var up to have R2 slightly below 1
-
-  p.cov = omega[Pw,P] - t(omega[1:Pz,Pw]) %*% solve(omega[1:Pz,1:Pz]) %*% omega[1:Pz,P]
-  p.vars = c(omega[Pw,Pw] - fit.x, omega[P,P] - fit.y)
-  out[1] = ifelse(all(p.vars > 0), p.cov/sqrt(prod(p.vars)), NA)
-
-  draws = tryCatch(matrixsampling::rwishart(n.iter, K, Sigma=sigma/K, Theta=omega), error=function(e){return(NULL)}) 
-  if (!is.null(draws)) {
-    est = apply(draws, 3, estimate.pcor, sigma)  
-    out[2:3] = quantile(est, c(0.025, 0.975), na.rm=T)    
-    out[out < -1] = -1; out[out > 1] = 1
-  }
-  return(round(out,5))   #jw (round)
-}                    
 
 estimate.pcor = function(draw, sigma) {
   i.y = dim(sigma)[1]; i.x = i.y - 1; i.z = 1:(i.x-1)
@@ -125,7 +93,7 @@ estimate.pcor = function(draw, sigma) {
   return(r)
 }
 
-#this is identical to the one in the previous script files, just included here for completeness
+# this is identical to the one in the previous script files, just included here for completeness
 conditional.norm = function(obs, means, sds) {
   obs = abs(obs)
   prob = suppressWarnings(pnorm(obs, mean=means, sd=sds, lower.tail=F))
@@ -133,31 +101,3 @@ conditional.norm = function(obs, means, sds) {
   return(mean(prob, na.rm=T))
 }
 
-
-#############
-# testing / convenience functions
-
-#assuming first two are x and y, rest are z
-wish.sampler = function(K, omega, sigma, n.iter=1000) {
-  i.y = 1; i.x = 2; i.z = 3:dim(omega)[1]
-  prod = omega[i.z,i.x] %*% solve(omega[i.z,i.z]) %*% omega[i.z,i.y]
-  obs = as.numeric(omega[i.x,i.y] - prod)
-  
-  omega.null = omega; omega.null[i.x,i.y] = omega.null[i.y,i.x] = prod
-  func = function(draw, K, sigma) {o = draw/K-sigma; z = 3:dim(o)[1]; return(o[1,2] - t(o[z,1]) %*% solve(o[z,z]) %*% o[z,2])}
-  perm = apply(matrixsampling::rwishart(n.iter, K, Sigma=sigma, Theta=K*omega.null), 3, func, K, sigma)
-  p = mean(abs(perm) > abs(obs))
-  return(p)
-}
-
-# single indices x and y, vector of indices z
-partial.cor = function(omega, x, y, z) {
-  p.cov = partial.cov(omega, x, y, z)
-  return(p.cov/sqrt(partial.var(omega, x, z) * partial.var(omega, y, z)))
-}
-
-# single indices x and y, vector of indices z
-partial.cov = function(omega, x, y, z) {omega[x,y] - t(omega[z,x]) %*% solve(omega[z,z]) %*% omega[z,y]}
-
-# single index x, vector of indices z
-partial.var = function(omega, x, z) {omega[x,x] - t(omega[z,x]) %*% solve(omega[z,z]) %*% omega[z,x]}
