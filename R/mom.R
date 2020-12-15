@@ -1,0 +1,310 @@
+
+#### METHOD OF MOMENTS 
+estimate.moments = function(delta, sigma, K, null.idx=0, null.omega=NULL, only.omega=F) {
+	#x delta=locus$delta; sigma=locus$sigma; K=locus$K; null.idx=0; only.omega=F
+	delta = as.matrix(delta)
+	P = ncol(delta)
+	
+	if (P!=1) {; Px = P-1; x = 1:Px; y = P	}
+	
+	# Omega
+	if (null.idx==0) { omega = t(delta)%*%delta / K - sigma } else { omega = null.omega }
+	if (only.omega) return(omega)
+	
+	# Gamma / tau
+	gamma = t(omega[y,x] %*% solve(omega[x,x]))
+	tau = omega[y,y] - omega[y,x] %*% solve(omega[x,x]) %*% omega[x,y]
+	
+	if (null.idx) {
+		gamma.null = rep(0,P)
+		gamma.null[-null.idx] = gamma
+		return(list(gamma=gamma.null, tau=tau))
+	} else {
+		# standardise
+		gamma.std = rep(NA,Px); for (p in x) { gamma.std[p] = gamma[p]*sqrt(omega[p,p]/omega[y,y]) }
+		tau.std = tau / omega[y,y]
+		r2 = 1 - tau.std
+		return(list(omega=omega, omega.xy=omega[P,-P], gamma=c(gamma), gamma.std=c(gamma.std), tau=tau, tau.std=tau.std, r2=r2))
+	}
+}
+
+#' Perform univariate and bivariate analysis in one go
+#' 
+#' Will only perform bivariate test for phenotypes that pass the univariate significance threshold.
+#' If multiple phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
+#' 
+#' @param locus Locus object created using the the \code{\link{process.locus}} function
+#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes will be analysed
+#' @param univ.thresh P-value threshold for the univariate test used to determine whether a bivariate test should be performed.
+#' @param adap.thresh P-value thresholds for the adaptive permutation procedure, determining the number of iterations to use for the bivariate test.
+#' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of permutations is capped at the default (note: this significantly speeds up the analysis, but results in poor accuracy for low p-values).
+#' @param return.unanalysed If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed.
+#' Otherwise, only the analysed phenotypes will be returned (default).
+#' 
+#' @return List containing the results from the univariate and bivariate tests
+#' 
+#' @export
+#' 
+run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), return.unanalysed=F) { #x univ.thresh=1e-5
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
+	P = length(phenos)
+	
+	# univariate analysis
+	univ = run.univ(locus, phenos)
+	
+	# bivariate analysis
+	if (!return.unanalysed) bivar=NULL else bivar = data.frame(phen1 = phenos[-P], phen2 = phenos[P], rho=NA, rho.lower=NA, rho.upper=NA, r2=NA, r2.lower=NA, r2.upper=NA, p=NA)
+	if (any(univ$p[-P] < univ.thresh) & univ$p[P] < univ.thresh) { 
+		bivar = run.bivar(locus, phenos = phenos[which(univ$p < univ.thresh)], adap.thresh=adap.thresh)
+		if (return.unanalysed) { bivar = merge(data.frame(phen1 = phenos[-P]), bivar, all=T, sort=F); bivar = bivar[match(phenos[-P], bivar$phen1),]; bivar$phen2=phenos[P] }
+	}
+	return(list(univ=univ, bivar=bivar))
+}
+#x run.bivar(locus, phenos = c("rheuma","hypothyriodism"), adap.thresh=adap.thresh, pred.out=T) 
+
+# Univariate p-values
+univariate.test = function(locus, phenos=NULL) {
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
+	P = length(phenos)
+	
+	p = rep(NA, P)
+	for (i in 1:P) {
+		stat = sum(as.matrix(locus$delta[,phenos])[,i]^2) / as.matrix(locus$sigma[phenos,phenos])[i,i]
+		p[i] = ifelse(locus$binary[phenos][i], pchisq(stat, locus$K, lower.tail=F), pf(stat/locus$K, locus$K, locus$N[phenos][i] - locus$K-1, lower.tail=F))
+	}
+	return(p)
+}
+
+#' Run univariate analysis
+#' 
+#' Performs univariate test to determine the presence of local genetic signal
+#' 
+#' @param locus Locus object created using the the \code{\link{process.locus}} function
+#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes will be analysed
+#' 
+#' @export
+run.univ = function(locus, phenos=NULL) {
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
+	P = length(phenos)
+	
+	univ = data.frame(phen = phenos)
+	#univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6)
+	univ$h2.obs = signif(locus$h2.obs[phenos], 6)
+	if (any(locus$binary[phenos])) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
+	univ$p = signif(univariate.test(locus, phenos), 6)
+	return(univ)
+}
+	
+#' Bivariate local genetic correlation analysis
+#' 
+#' Performs bivariate local genetic correlation analysis between two phenotypes for a single locus.
+#' If more than one phenotype is specified, the last phenotype will be treated as the phenotype of interest, 
+#' and separate bivariate tests will be performed between this phenotype and all others.
+#' Note: this test is symmetric, which phenotype is considered predictor/outcome doesn't matter.
+#' 
+#' @param locus Locus object created using the the \code{\link{process.locus}} function, containing all the relevant parameters for the phenotypes of interest
+#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes in the locus object will be analysed
+#' @param adap.thresh Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.
+#' @param p.values Set to F if p-values are not desired.
+#' @param CIs Set to F to if confidence intervals are not desired.
+#' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
+#' 
+#' @export
+run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {	#x adap.thresh=NULL; CIs=T; p.values=T; param.lim=1.25
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } } ## 20-09-24: added error if faulty phenotype IDs are provided
+	P = length(phenos); Px = P-1; Y = phenos[P]
+	if (P < 2) { stop("Less than 2 phenotypes provided, cannot perform bivariate analysis") }
+	
+	bivar = list(); params = c("gamma.std","r2"); ci.params = c("rho.lower","rho.upper","r2.lower","r2.upper")
+	bivar = data.frame(matrix(NA, Px, length(params)+7)); colnames(bivar) = c("phen1","phen2",params,ci.params,"p"); bivar$phen2 = phenos[P]
+	
+	for (i in 1:Px) {
+		bivar$phen1[i] = phenos[i]
+		
+		# estimate params
+		mom = estimate.moments(delta=locus$delta[,c(phenos[i],Y)], sigma=locus$sigma[c(phenos[i],Y),c(phenos[i],Y)], K=locus$K)
+		for (p in params) { bivar[[p]][i] = signif(mom[[p]], 6) } # store params
+		
+		# confidence intervals
+		if (CIs) {
+			ci = ci.bivariate(K = locus$K, omega = mom$omega, sigma = locus$sigma[c(phenos[i],Y),c(phenos[i],Y)])
+			bivar$rho.lower[i] = ci$ci.rho.low; bivar$rho.upper[i] = ci$ci.rho.high
+			bivar$r2.lower[i] = ci$ci.r2.low; bivar$r2.upper[i] = ci$ci.r2.high
+		}
+		# p-values
+		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K=locus$K, omega=mom$omega, sigma=locus$sigma[c(phenos[i],Y),c(phenos[i],Y)], adap.thresh=adap.thresh), 6) }	## 20/09/18: updated integral.p()
+	}
+	# v0.0.4: filter any values that are too far out of bounds
+	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim) # first param must be gamma/rho
+																									# params just needs to list all that will be set to NA if rho / gamma is too far out of bounds
+	## 20-09-24: cap out of bounds values to -1 / 1
+	for (p in params) { bivar[[p]] = cap.values(bivar[[p]]) }
+	colnames(bivar)[which(colnames(bivar)=="gamma.std")] = "rho"	## 20-09-24: change output colnames from gamma.std to rho
+	
+	return.vars = c("phen1","phen2","rho","rho.lower","rho.upper","r2","r2.lower","r2.upper","p")
+	return(bivar[,return.vars])
+}
+# run.bivar(locus, c("whr","neuro","depression"), adap.thresh=NULL, param.lim=.9)
+# locus$omega.cor[c("depression","whr"),c("depression","whr")]
+
+
+# v0.0.4: remove parameters that are excessively out of bounds
+filter.params = function(data, params, param.lim=1.25, multreg=F) {	# data=bivar; params = c(params, ci.params); param.lim = .25
+	out.of.bounds = abs(data[params[1]]) > abs(param.lim)			# assumes first param is gamma/rho
+	
+	if (any(out.of.bounds)) {
+		# get phenotype colnames
+		if (!multreg) { phen.cols = c("phen1","phen2") } else { phen.cols = c("predictors","outcome") }
+		# print warning
+		message("Warning: Estimates too far out of bounds (+-",param.lim,") for phenotype(s) ",
+				paste0(paste0(data[phen.cols[1]][out.of.bounds]," ~ ",data[phen.cols[2]][out.of.bounds]," (",signif(data[params[1]][out.of.bounds],4),")"),collapse=", "),
+				" in locus ",locus$id,". Values will be set to NA. To change this threshold, modify the 'param.lim' argument")  # actually dont need to pass locus
+		# set to NA
+		if (!multreg) { data[out.of.bounds, params] = NA } else { data[,params] = NA }
+	}
+	return(data)
+}
+
+
+#' Multiple local genetic regression analysis
+#' 
+#' @param locus Locus object created using the the \code{\link{process.locus}} function, containing all the relevant parameters for the phenotypes of interest
+#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes in the locus object will be analysed. NOTE: the last phenotype will be treated as the outcome
+#' @param adap.thresh Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.
+#' @param p.values Set to F if p-values are not desired.
+#' @param CIs Set to F to if confidence intervals are not desired.
+#' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
+#' 
+#' @export
+run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) { #x only.full.model=T; adap.thresh=NULL
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } } ## 20-09-24: added error if faulty phenotype IDs are provided
+	P = length(phenos); Px = P-1; Y = phenos[P]
+	if (P < 3) { stop(paste0("Only ",P," phenotypes provided for conditional analysis; Need at least 3")) }
+	cond.idx = 1:Px
+	
+	if (!suppress.message) print(paste0("~ Running multiple regression for outcome '",Y,"', with predictors '",paste(phenos[1:Px],collapse="', '"),"'"))
+	
+	cond = list()
+	models = list(); for (i in 2:length(cond.idx)) { models[[i-1]] = combn(phenos[1:Px], i) }		# get all unique predictor models
+	if (only.full.model) { m=list(); m[[1]] = models[[length(models)]]; models = m }
+	
+	params = c("gamma.std","r2")
+	ci.params = c("gamma.lower","gamma.upper","r2.lower","r2.upper")
+	
+	#x k=1;j=1
+	for (j in 1:length(models)) {
+		cond[[j]] = list()
+		for (k in 1:ncol(models[[j]])) {
+			mod.idx = models[[j]][,k]		# get index of current model (actually by name, rather than 'index')
+			Pm = length(mod.idx)			# no predictors in curr model
+			
+			# check invertibility of omega.x
+			eig = eigen(locus$omega[mod.idx,mod.idx]); if (any(eig$values / (sum(eig$values)/Pm) < 1e-4)) { stop("omega.X not invertible") }; rm(eig)
+			
+			# mom
+			mom = estimate.moments(delta = locus$delta[,c(mod.idx,Y)], sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)], K = locus$K)
+			
+			# store mom output
+			cond[[j]][[k]] = data.frame(matrix(NA, nrow = Pm, ncol = length(params)+7)); colnames(cond[[j]][[k]]) = c("predictors", "outcome", params, ci.params, "p")
+			cond[[j]][[k]]$predictors = mod.idx; cond[[j]][[k]]$outcome = Y
+			cond[[j]][[k]]$gamma.std = signif(mom$gamma.std, 6); cond[[j]][[k]]$r2 = rep(signif(mom$r2, 6), Pm)
+			
+			# confidence intervals
+			if (CIs) {
+				ci = ci.multivariate(K=locus$K, omega=mom$omega, sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)])	# TODO: why subsetting sigma here but not omega?
+				cond[[j]][[k]]$gamma.lower = ci$gamma$ci.low; cond[[j]][[k]]$gamma.upper = ci$gamma$ci.high
+				cond[[j]][[k]]$r2.lower = ci$r2$ci.low; cond[[j]][[k]]$r2.upper = ci$r2$ci.high
+			}
+			# p-values
+			if (p.values) {
+				pvals = try(integral.p(multivariate.integral, K = locus$K, omega = mom$omega, sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)], adap.thresh=adap.thresh), silent=T)
+				cond[[j]][[k]]$p = signif(pvals, 6)		## 20-09-24: added signif()
+			}
+			# filter estimates that are too far out of bounds 
+			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T) # first param must be gamma/rho
+			
+			## cap out of bounds values to -1 / 1
+			for (p in c(params, ci.params)) { cond[[j]][[k]][[p]] = cap.values(cond[[j]][[k]][[p]]) }
+			
+			cond[[j]][[k]] = cond[[j]][[k]][,c("predictors","outcome","gamma.std","gamma.lower","gamma.upper","r2","r2.lower","r2.upper","p")]
+			colnames(cond[[j]][[k]])[which(colnames(cond[[j]][[k]])=="gamma.std")] = "gamma"
+		}
+	}
+	return(cond)
+}
+#x run.multireg(locus, only.full.model=T, param.lim=.5)
+
+
+# function for capping values at -1 / 1
+cap.values = function(values, lim = c(-1,1)) {
+	for (i in 1:length(values)) {
+		if (is.na(values[i])) next
+		if (values[i] > max(lim)) {
+			values[i] = max(lim)
+		} else if (values[i] < min(lim)) {
+			values[i] = min(lim)
+		}
+	}
+	return(values)
+}
+#x values = c(NA, .2, -3, -.5, 4, 1.234235, .9223423)
+#x cap.values(values)
+
+
+
+
+
+#' Partial correlation analysis
+#' 
+#' Will perform the partial correlation between the first two phenotypes (p1,p2) conditioned on the rest (Z). 
+#' Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector to the 'phenos' argument.
+#' 
+#' @param locus Locus object
+#' @param phenos List of phenotypes to analyse (first two are p1 & p2, the remaining are Z)
+#' @param adapt.thresh [...]
+#' @param CIs [...]
+#' @param p.values [...]
+#' @param max.r2 Max r2 threshold for the regression of x~z and y~z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
+#' 
+#' @export
+run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T, p.values=T, max.r2=.95, param.lim=1.25) {
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste("Error: invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))); stop() } }
+	P = length(phenos); if (P < 3) { stop(paste0("Only ",P," phenotypes provided for partial correlation; need at least 3")) }
+	x = 1; y = 2; z = 3:P
+	
+	print(paste0("~ Running partial correlation for '",phenos[x],"' and '",phenos[y],"', conditioned on '",paste(phenos[z],collapse="' + '"),"'"))
+	
+	# check invertibility of omega.z
+	eig = eigen(locus$omega[phenos,phenos][z,z]); if (any(eig$values / (sum(eig$values)/length(z)) < 1e-4)) { stop("omega.Z not invertible") }; rm(eig)
+	
+	# get r2 of p1 (x) and p2 (y) on Z
+	r2 = data.frame(x = NA, y = NA)
+	for (i in 1:2) {
+		if (P == 3) {
+			r2[i] = run.bivar(locus, phenos[c(3:P,i)], p.values=F, CIs=F)$r2
+		} else {
+			r2[i] = run.multireg(locus, phenos[c(3:P,i)], only.full.model=T, p.values=F, CIs=F, suppress.message=T)[[1]][[1]]$r2[1]
+		}
+	}
+	out = data.frame(phen1=phenos[x], phen2=phenos[y], z=paste(phenos[z],collapse=";"), r2.p1_z = r2$x, r2.p2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
+	
+	if (CIs) {
+		ci = signif(ci.pcor(K=locus$K, xy.index=c(x,y), z.index=z, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos]),6)
+		out$pcor = ci[1]; out$ci.lower = ci[2]; out$ci.upper = ci[3]
+	} else {
+		out$pcor = signif(partial.cor(locus$omega[phenos,phenos], x, y, z),6)
+	}
+	
+	# if r2 is < max.r2, proceed with pvalues
+	if (all(out[c("r2.p1_z","r2.p2_z")] < max.r2) & p.values) {
+		out$p = signif(integral.p(pcov.integral, K=locus$K, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos], adap.thresh=adap.thresh),6)
+	}
+	
+	# filter any values that are too far out of bounds
+	params = c("pcor","ci.lower","ci.upper","p")
+	out = filter.params(data = out, params = params, param.lim = param.lim) # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
+	# NOTE: capping out of bounds values is not necessary as that is already done in the ci.pcor and partial.cor() functions
+	return(as.data.frame(lapply(out, signif, 6)))
+}
+#x run.partial.cor(locus)
