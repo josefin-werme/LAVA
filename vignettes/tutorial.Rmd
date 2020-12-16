@@ -62,7 +62,7 @@ library(lava)
 #### As input, LAVA needs the following data:
 
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
-    -     e.g. 1000 genomes [https://www.internationalgenome.org/data/]
+    -     e.g. [1000 genomes](https://www.internationalgenome.org/data/)
 
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
@@ -141,7 +141,7 @@ head(input$ref$bim)   # bim file from reference data
 ?process.input()
 ```
 
-## Read in locus definitions and create a locus object
+## Read in locus definitions and proces a locus
 
 Before analysing the genetic correlation at a locus, we need to convert the marginal SNP effect sizes from GWAS to the corresponding joint effects in order to account for the LD in the locus. Only after we've done this, we can proceed with the analysis.
 
@@ -209,15 +209,12 @@ run.univ(locus)
 
 we see that there is plenty of signal for all phenotypes, and we can proceed with the bivariate test
 
-## Bivariate local r~*g*~ analysis
+## Perform a bivariate local r~*g*~ analysis
 
-To proceed with the bivariane rg analysis, we simply pass the locus object the run.bivar() function
-
-**[ TODO: MAKE BIVAR FUNC THAT JUST ANALYSES ALL COMBINATIONS OF PHENOS!! ]**
+To proceed with the bivariane r~*g*~ analysis, testing the local r~*g*~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function 
 
 ```{r}
 run.bivar(locus)
-
 ```
 
 And if we look at the description of this function, we see that this too can take a phenotype vector, should only a subset of phenotypes be analysed. If multiple phenotypes are entered simultaneously, the last phenotype will be treated as the phenotype of interest, and separate bivariate tests will be performed between this phenotype and all others. (Note: this test is symmetric, which phenotype is considered the 'outcome' here doesn't matter).
@@ -226,18 +223,47 @@ And if we look at the description of this function, we see that this too can tak
 ?run.bivar()
 ```
 
-To analyse the bivariate test automatically conditional on univariate signal, you can also use the run.univ.bivar() function to perform both tests in one go
+You can change the order of the phenotypes using the 'phenos' argument if you e.g. want to obtain the correlations between depression and all the other phenotypes
+
+```{r}
+run.bivar(locus, phenos=c("neuro","bmi","depression"))
+```
+
+To filter automatically based on the univariate signal, you can also use the run.univ.bivar() function to perform both tests in one go, and only performs the bivariate test for the phenotypes that passed univariate significance
+```{r}
+# with the default p-value threshold of XXXX
+run.univ.bivar(locus)
+
+# or with a custom p-value threshold
+run.univ.bivar(locus, univ.thresh = 1e-8)
+```
+
+as you can see, this function only proceeds with the bivariate analysis for all the phenotypes that reach univariate significance at the specified threshold.
+
+
+## Multivariate local genetic association approaches
+For loci in which you find significant correlations between more than two phenotypes, you might want to apply one of two possible multivariate approaches, which allow you to compute conditional local genetic correlations
+
+
+### Multiple regression
+The multiple regression allows you to model the genetic signal for an outcome phenotype using several other predictor phenotypes simultaneously. When doing so, any potential local r~*g*~ between the predictor phenotypes will be accounted for, i.e., their genetic association with the outcome will be conditional on all the other predictors
+
+
+** TODO : select another locus / phenotypes where there is more signal **
+
+
 ```{r}
 
+# For this analysis we will use a locus and phenotype subset in which there is a bit more signal
+locus = process.locus(loci[4,], input)
+run.multireg(locus)
 
 ```
 
 
 
-## Multiple regression 
 
-
-## Partial correlation
+### Partial correlation
 
 
 
@@ -245,7 +271,7 @@ To analyse the bivariate test automatically conditional on univariate signal, yo
 ---
 
 ## Example analysis script for bivariate r~*g*~ analysis across all loci
-If you are interested in e.g. the local bivariate genetic correlations between a large amount of phenotypes, we advice using e.g. a cluster computer. The example analysis script below shows how you might set up an R script that can be called from the command line
+If you are interested in e.g. the local bivariate genetic correlations between a large amount of phenotypes, we advice using a cluster computer. The example analysis script below shows how you might set up an R script that can be called from the command line
 ```{r, eval=F}
 # command line arguments, specifying input/output file names and phenotype subset
 arg = commandArgs(T); ref.dat = arg[1]; loc.file = arg[2]; info.file = arg[3]; phenos = unlist(strsplit(arg[4],";")); sample.overlap.file = arg[5]; out.fname = arg[6]
