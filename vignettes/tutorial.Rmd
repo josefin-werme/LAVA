@@ -1,8 +1,9 @@
 ---
 title: "LAVA TUTORIAL"
 author: "Josefin Werme, CTG Lab, VU Amsterdam"
-date: "25th Sept, 2020"
-output: rmarkdown::html_vignette
+date: "18th Dec, 2020"
+#output: rmarkdown::html_vignette
+output: github_document
 vignette: >
   %\VignetteIndexEntry{tutorial}
   %\VignetteEngine{knitr::rmarkdown}
