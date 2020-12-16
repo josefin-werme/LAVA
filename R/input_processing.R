@@ -27,7 +27,7 @@
 #' }
 #' 
 #' @export
-process.locus = function(locus, input, min.K=2, prune.thresh=99, debug=F) { #x locus = loci[1,]; min.K=3; prune.thresh=99; debug=F; 
+process.locus = function(locus, input, min.K=2, prune.thresh=99) { 
 	# define locus environment & add locus info
 	loc = new.env(parent=globalenv())
 	loc$id = locus$LOC; loc$chr = locus$CHR; loc$start = locus$START; loc$stop = locus$STOP; loc$snps = locus$SNPS
@@ -41,20 +41,20 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99, debug=F) { #x l
 	# get locus SNPs
 	if (!is.null(loc$snps)) {
 		# if available, use SNP list
-		loc.snps = tolower(unlist(strsplit(loc$snps, ';')))
+		loc$snps = tolower(unlist(strsplit(loc$snps, ';')))
 	} else {
 		# if not, use bim file coordinates
-		loc.snps = input$ref$bim$snp.name[input$ref$bim$chromosome == loc$chr & input$ref$bim$position >= loc$start & input$ref$bim$position <= loc$stop]
+		loc$snps = tolower(input$ref$bim$snp.name[input$ref$bim$chromosome == loc$chr & input$ref$bim$position >= loc$start & input$ref$bim$position <= loc$stop])
 	}
 	# subset to SNPs that passed input processing (i.e. exists across data sets + were aligned)
-	loc.snps = unique(intersect(input$analysis.snps, loc.snps))	# taking unique in case there are duplicates in loc$snps; using to intersect() to ensure order is same as reference data set
+	loc$snps = unique(intersect(input$analysis.snps, loc$snps))	# taking unique in case there are duplicates in loc$snps; using to intersect() to ensure order is same as reference data set
 	
 	# check that no SNPs > min.K
-	loc$N.snps = length(loc.snps)
+	loc$N.snps = length(loc$snps)
 	if (loc$N.snps < min.K) { print(paste("Fewer than",min.K,"SNPs in locus",loc$id)); loc=NULL; return(NULL) }
 	
 	# read in genotype data (only locus SNPs)
-	X = read.plink.custom(input$ref.dat, df.bim=input$ref, select.snps=loc.snps)
+	X = read.plink.custom(input$ref.prefix, df.bim=input$ref, select.snps=loc$snps)
 	X = as(X$genotypes, "numeric")
 	X = scale(X)			# standardise
 	X[is.na(X)] = 0			# mean imputation for missing data
@@ -62,8 +62,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99, debug=F) { #x l
 	N.ref = nrow(X)
 	
 	# check that order of SNPs match
-	# using loc.snps to subset sumstats below since this is lower case (as is sumstats SNPs), but using colnames(X) for output as this is same as reference data
-	if (!all(tolower(colnames(X))==loc.snps)) { stop(paste("Mismatching SNP order between reference data and analysis SNPs in locus", loc$id)) }  # TODO: appropriate error;
+	if (!all(tolower(colnames(X))==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between reference data and analysis SNPs in locus", loc$id,". Please contact developer.")) }  # TODO: appropriate error;
 	
 	# prune redundant PCs
 	svd = try(svd(X), silent=T)										# try svd
@@ -79,14 +78,13 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99, debug=F) { #x l
 	# Retain PCs
 	cum.perc = cumsum(lambda / sum(lambda) * 100)
 	keep = 1:min(which(cum.perc >= prune.thresh))
-	if (debug) { keep = 1:sum(cumsum(lambda / sum(lambda) * 100) <= prune.thresh); print("WARNING: DEBUG PRUNING MODE") }  # TODO: remove before uploading
-	
+
 	# Subset sum-stats and get locus N
 	loc.sum = list(); loc$N = rep(NA, input$P)
 	for (i in 1:input$P) {
 		# subset sumstats to locus SNPs
-		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc.snps,]
-		if (!all(loc.sum[[i]]$SNP==loc.snps)) { stop(paste("Mismatching SNP order between sum-stats and reference data for locus", loc$id)) }	# TODO: appropriate error; this should never be triggered, but just in case
+		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc$snps,]
+		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# TODO: appropriate error; this should never be triggered, but just in case
 		# get N
 		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)											# get mean locus N (for sumstats i)
 		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }			# if all are NA, set to mean N across all SNPs in sumstats (20-09-23)
@@ -147,7 +145,6 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99, debug=F) { #x l
 		}
 		if (!rerun) break # end while loop
 	}
-	if (debug) { print(paste(length(dropped),"PCs dropped")) }   # TODO: remove before uploading
 	if (input$P > 1) { loc$sigma = diag(loc$sigma) }; if (!is.null(input$sample.overlap)) { loc$sigma = sqrt(loc$sigma) %*% as.matrix(input$sample.overlap) %*% sqrt(loc$sigma) } # if P > 1 is just because the diag() doesn't work for single phenotype
 	loc$sigma = as.matrix(loc$sigma)  # as.matrix necessary so that the univ test still works with single phenotype
 	
@@ -198,8 +195,7 @@ filter.n = function(input, i) {
 
 process.sumstats = function(input) {
 	# check if input files exist
-	infiles = c(input$info$filename, paste0(input$ref.dat, c(".bim",".bed",".fam")))
-	if (!all(file.exists(infiles))) { stop(paste0("Missing input files: '",paste0(infiles[!file.exists(infiles)],collapse=", '"),"'")) }
+	check.files.exist(input$info$filename)
 	
 	# possible / required headers
 	headers = list(); headers$N = c("N","NMISS","N_analyzed","OBS_CT"); headers$STAT = c("Z","T","STAT","Zscore"); headers$SNP = c("SNP","ID","SNPID_UKB","SNPID","MarkerName","RSID","RSID_UKB"); headers$B = c("B","BETA"); headers$A1=c("A1","ALT"); headers$A2=c("A2","REF")	 # header variations
@@ -250,7 +246,7 @@ process.sumstats = function(input) {
 	
 	# reference data bim/afreq file
 	print("...Reading in SNP info from reference data")
-	input$ref = read.bim.custom(input$ref.dat, as.env=T)
+	input$ref = read.bim.custom(input$ref.prefix, as.env=T)
 	input$ref$bim$snp.name = tolower(input$ref$bim$snp.name)		# setting ref SNPs tolower
 	
 	# get common SNPs
@@ -282,25 +278,25 @@ process.sample.overlap = function(sample.overlap.file, phenos) {
 	return(cov2cor(sample.overlap[idx,idx]))
 }
 
-get.input.info = function(input.info.file, sample.overlap.file, ref.dat, phenos=NULL) {
+get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
+	check.files.exist(c(input.info.file, sample.overlap.file, paste0(ref.prefix, c(".bim",".bed",".fam"))))
+	
 	input = new.env(parent=globalenv())
 	input$info = read.table(input.info.file, header=T, stringsAsFactors=F) # read in input info file
-	if (!all(c("phenotype","cases","controls","filename") %in% colnames(input$info))) { stop("Please provide an input.info file with headers: phenotype, cases, controls, filename") }  ## 20-09-24: added header check on input file
-	if (is.null(phenos)) { phenos = input$info$phenotype }					## 20-09-23: made phenos argument optional
+	if (!all(c("phenotype","cases","controls","filename") %in% colnames(input$info))) { stop("Please provide an input.info file with headers: phenotype, cases, controls, filename") }  # header check on input file
+	if (is.null(phenos)) { phenos = input$info$phenotype }
 	if (!all(phenos %in% input$info$phenotype)) { stop(paste0("Phenotype(s) not listed in input info file: '", paste0(phenos[!phenos %in% input$info$phenotype], collapse="', '"),"'")) }
 	
 	input$info = input$info[match(phenos, input$info$phenotype),]			# match to phenotypes of interest
-	input$info$N = input$info$cases + input$info$controls					## 20/09/22 added a total N column (will be used by process_input if there is no N column)
-	input$info$prop_cases = input$info$cases / input$info$N 				# get proportion cases; ## 20/09/22: changed to use N rather than the sum(causes + controls)
-	input$info$binary = input$info$prop_cases!=1	# get binary phenotypes
+	input$info$N = input$info$cases + input$info$controls					# total N column
+	input$info$prop_cases = input$info$cases / input$info$N 				# get proportion cases
+	input$info$binary = input$info$prop_cases!=1							# infer binary phenotypes from prop_cases
 	input$P = length(input$info$phenotype)
-	input$ref.dat = ref.dat
-	if (input$P > 1 & !is.null(sample.overlap.file)) { input$sample.overlap = process.sample.overlap(sample.overlap.file, phenos) } else { input$sample.overlap=NULL } ## 20/07/18: setting sample overlap to null if only one phenotype
-
+	input$ref.prefix = ref.prefix
+	if (input$P > 1 & !is.null(sample.overlap.file)) { input$sample.overlap = process.sample.overlap(sample.overlap.file, phenos) } else { input$sample.overlap=NULL } # setting sample overlap to null if only one phenotype
+	
 	return(input)
 }
-
-
 
 
 
@@ -316,7 +312,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.dat, phenos=
 #' @param sample.overlap.file Name if file with sample overlap information.
 #' Can be set to NULL if there is no overlap
 #' 
-#' @param ref.dat Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)
+#' @param ref.prefix Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)
 #' 
 #' @param phenos A vector of phenotype IDs can be provided if only a subset of phenotypes are desired
 #' (if NULL, all phenotypes in the input info file will be processed). 
@@ -333,15 +329,15 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.dat, phenos=
 #'     \item P - number of phenotypes
 #'     \item sample.overlap - sample overlap matrix
 #'     \item sum.stats - processed summary statistics (SNP aligned effect sizes, subsetted to common SNPs across data sets, effect sizes converted to Z, etc)
-#'     \item ref.dat - genotype reference data prefix
+#'     \item ref.prefix - genotype reference data prefix
 #'     \item analysis.snps - subset of SNPs shared across all data sets
 #'     \item unalignable.snps - SNPs removed during alignment
-#'     \item ref - environment containing the genotype reference data bim file (ref$bbim)
+#'     \item ref - environment containing the genotype reference data bim file (ref$bim)
 #' }
 #' 
 #' @export
-process.input = function(input.info.file, sample.overlap.file, ref.dat, phenos=NULL) {
-	input = get.input.info(input.info.file, sample.overlap.file, ref.dat, phenos)
+process.input = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
+	input = get.input.info(input.info.file, sample.overlap.file, ref.prefix, phenos)
 	input = process.sumstats(input)
 	return(input)
 }
@@ -359,7 +355,13 @@ process.input = function(input.info.file, sample.overlap.file, ref.dat, phenos=N
 #' 
 #' @export
 read.loci = function(loc.file) {
+	check.files.exist(loc.file)
 	loci = data.table::fread(loc.file, data.table=F)
 	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(loci)) | all(c("LOC","SNPS") %in% colnames(loci)))) { stop("Locus file does not contain required headers") }
 	return(loci)
+}
+
+
+check.files.exist = function(infiles) {
+	if (!all(file.exists(infiles))) { stop(paste0("Missing input file(s): '",paste0(infiles[!file.exists(infiles)],collapse=", '"),"'"),". Please ensure correct file names and paths have been provided.") }
 }

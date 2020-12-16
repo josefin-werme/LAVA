@@ -1,0 +1,32 @@
+---
+title: "LAVA TUTORIAL"
+author: "Josefin Werme, CTG Lab, VU Amsterdam"
+date: "18th Dec, 2020"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+## Obtaining sample overlap from LDSC
+To correct for potential sample overlap, LAVA uses the known or estimated sampling correlation (i.e. the phenotypic correlation that is due to sample overlap). If unknown, this can be estimated using cross-trait LDSC (see [LDSC github page](https://github.com/bulik/ldsc/wiki/Heritability-and-Genetic-Correlation) and [publication](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4797329/) for details)
+
+Extract the results for all phenotypes 
+
+**[example bash script]**
+```{bash, eval=F}
+for I in 
+
+
+
+```
+
+
+You can then create a sampling correlation matrix in R with the following script
+```{r}
+
+
+
+```
