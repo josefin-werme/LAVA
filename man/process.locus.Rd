@@ -4,7 +4,7 @@
 \alias{process.locus}
 \title{Process locus info}
 \usage{
-process.locus(locus, input, min.K = 2, prune.thresh = 99, debug = F)
+process.locus(locus, input, min.K = 2, prune.thresh = 99)
 }
 \arguments{
 \item{input}{Input object created with the \code{\link{process.input}} function, containing relevant summary statistics and related info (e.g. sample overlap, case/control ratio)}
@@ -23,9 +23,9 @@ This function returns an object containing general locus info, the relevant proc
     \item id - locus ID
     \item chr/start/stop - locus coordinates
     \item snps - list of locus SNPs
-    \item N.snps - number of SNPs
+    \item n.snps - number of SNPs
     \item K - number of PCs
-    \item delta - PC projected joint SNP effects for each phenotype
+    \item delta - PC projected joint SNP effects
     \item sigma - sampling covariance matrix
     \item omega - genetic covariance matrix
     \item omega.cor - genetic correlation matrix

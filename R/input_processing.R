@@ -15,9 +15,9 @@
 #'     \item id - locus ID
 #'     \item chr/start/stop - locus coordinates
 #'     \item snps - list of locus SNPs
-#'     \item N.snps - number of SNPs
+#'     \item n.snps - number of SNPs
 #'     \item K - number of PCs
-#'     \item delta - PC projected joint SNP effects for each phenotype
+#'     \item delta - PC projected joint SNP effects
 #'     \item sigma - sampling covariance matrix
 #'     \item omega - genetic covariance matrix
 #'     \item omega.cor - genetic correlation matrix
@@ -33,8 +33,8 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	loc$id = locus$LOC; loc$chr = locus$CHR; loc$start = locus$START; loc$stop = locus$STOP; loc$snps = locus$SNPS
 	
 	# add phenotype info
-	loc$binary = as.matrix(input$info$binary)
-	loc$phenos = as.matrix(as.character(input$info$phenotype))
+	loc$binary = input$info$binary
+	loc$phenos = as.character(input$info$phenotype)
 	
 	min.K = max(min.K, 2) # just to make sure it isn't 1, because that leads to some matrix multiplication dimension issues
 	
@@ -50,8 +50,8 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	loc$snps = unique(intersect(input$analysis.snps, loc$snps))	# taking unique in case there are duplicates in loc$snps; using to intersect() to ensure order is same as reference data set
 	
 	# check that no SNPs > min.K
-	loc$N.snps = length(loc$snps)
-	if (loc$N.snps < min.K) { print(paste("Fewer than",min.K,"SNPs in locus",loc$id)); loc=NULL; return(NULL) }
+	loc$n.snps = length(loc$snps)
+	if (loc$n.snps < min.K) { print(paste("Fewer than",min.K,"SNPs in locus",loc$id)); loc=NULL; return(NULL) }
 	
 	# read in genotype data (only locus SNPs)
 	X = read.plink.custom(input$ref.prefix, df.bim=input$ref, select.snps=loc$snps)
@@ -168,7 +168,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 		
 		loc$delta = as.matrix(loc$delta[,!failed])	# delta
 		for (var in c("sigma","omega","omega.cor")) { loc[[var]] = as.matrix(loc[[var]][!failed,!failed]) } 		# symmetric matrices
-		for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = as.matrix(loc[[var]][!failed]) }	# vectors
+		for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = loc[[var]][!failed] }				# vectors
 	}
 	# Add phenotype IDs to everything
 	colnames(loc$delta) = names(loc$N) = names(loc$binary) = names(loc$h2.obs) = names(loc$h2.latent) = loc$phenos
@@ -344,7 +344,7 @@ process.input = function(input.info.file, sample.overlap.file, ref.prefix, pheno
 
 #' Read in locus file
 #' 
-#' This function reads in the locus file, defining the locus boundaries using either coordinates (headers: 'CHR', 'START', 'STOP') or ';' separated SNPs lists (header: 'SNPS').
+#' This function reads in the locus file, defining the locus boundaries using either coordinates (headers: 'CHR', 'START', 'STOP') and/or ';' separated SNP lists (header: 'SNPS').
 #' A locus ID column is also required (header: 'LOC').\cr
 #' \cr
 #' If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different GRChX version than the reference).\cr

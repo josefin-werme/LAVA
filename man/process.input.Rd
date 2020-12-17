@@ -4,7 +4,7 @@
 \alias{process.input}
 \title{Process input}
 \usage{
-process.input(input.info.file, sample.overlap.file, ref.dat, phenos = NULL)
+process.input(input.info.file, sample.overlap.file, ref.prefix, phenos = NULL)
 }
 \arguments{
 \item{input.info.file}{Name of info file containing 
@@ -14,7 +14,7 @@ For continuous phenotypes, the number of controls should be set to 0.}
 \item{sample.overlap.file}{Name if file with sample overlap information.
 Can be set to NULL if there is no overlap}
 
-\item{ref.dat}{Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)}
+\item{ref.prefix}{Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)}
 
 \item{phenos}{A vector of phenotype IDs can be provided if only a subset of phenotypes are desired
 (if NULL, all phenotypes in the input info file will be processed). 
@@ -32,10 +32,10 @@ An object containing processed input data and related info
     \item P - number of phenotypes
     \item sample.overlap - sample overlap matrix
     \item sum.stats - processed summary statistics (SNP aligned effect sizes, subsetted to common SNPs across data sets, effect sizes converted to Z, etc)
-    \item ref.dat - genotype reference data prefix
+    \item ref.prefix - genotype reference data prefix
     \item analysis.snps - subset of SNPs shared across all data sets
     \item unalignable.snps - SNPs removed during alignment
-    \item ref - environment containing the genotype reference data bim file (ref$bbim)
+    \item ref - environment containing the genotype reference data bim file (ref$bim)
 }
 }
 \description{
