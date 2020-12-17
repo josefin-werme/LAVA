@@ -1,7 +1,7 @@
 LAVA TUTORIAL
 ================
 Josefin Werme, CTG Lab, VU Amsterdam
-18th Dec, 2020
+2020-12-17
 
 ## Obtaining sample overlap from LDSC
 
