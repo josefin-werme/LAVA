@@ -37,8 +37,6 @@ run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-
 #x run.bivar(locus, phenos = c("rheuma","hypothyriodism"), adap.thresh=adap.thresh, pred.out=T) 
 
 
-
-
 # Univariate p-values
 univariate.test = function(locus, phenos=NULL) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
@@ -207,9 +205,9 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #' 
 #' @param locus Locus object
 #' @param phenos List of phenotypes to analyse (first two are p1 & p2, the remaining are Z)
-#' @param adapt.thresh [...]
-#' @param CIs [...]
-#' @param p.values [...]
+#' @param adapt.thresh Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.
+#' @param CIs Set to F to if confidence intervals are not desired.
+#' @param p.values Set to F if p-values are not desired.
 #' @param max.r2 Max r2 threshold for the regression of x~z and y~z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
 #' 
 #' @export
@@ -233,28 +231,26 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T,
 		}
 	}
 	out = data.frame(phen1=phenos[x], phen2=phenos[y], z=paste(phenos[z],collapse=";"), r2.phen1_z = r2$x, r2.phen2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
+	out$pcor = partial.cor(locus$omega[phenos,phenos], x, y, z)
 	
 	if (CIs) {
-		ci = signif(ci.pcor(K=locus$K, xy.index=c(x,y), z.index=z, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos]),6)
-		out$pcor = ci[1]; out$ci.lower = ci[2]; out$ci.upper = ci[3]
-	} else {
-		out$pcor = signif(partial.cor(locus$omega[phenos,phenos], x, y, z),6)
+		ci = ci.pcor(K=locus$K, xy.index=c(x,y), z.index=z, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos])
+		out$ci.lower = ci[2]; out$ci.upper = ci[3]
 	}
 	
 	# if r2 is < max.r2, proceed with pvalues
 	if (all(out[c("r2.p1_z","r2.p2_z")] < max.r2) & p.values) {
-		out$p = signif(integral.p(pcov.integral, K=locus$K, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos], adap.thresh=adap.thresh),6)
+		out$p = integral.p(pcov.integral, K=locus$K, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos], adap.thresh=adap.thresh)
 	}
 	
 	# filter any values that are too far out of bounds
-	params = c("pcor","ci.lower","ci.upper","p")
+	params = c("pcor","ci.lower","ci.upper")
 	out = filter.params(data = out, params = params, param.lim = param.lim) # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
-	# NOTE: capping out of bounds values is not necessary as that is already done in the ci.pcor and partial.cor() functions
+	out$pcor = cap.values(out$pcor) # cap the pcor at -1/1 (CIs are capped already)
+	
 	return(as.data.frame(lapply(out, signif, 6)))
 }
 #x run.partial.cor(locus)
-
-
 
 
 

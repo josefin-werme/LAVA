@@ -3,7 +3,6 @@ title: "LAVA TUTORIAL"
 author: "Josefin Werme, CTG Lab, VU Amsterdam"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
-# rmarkdown::render('tutorial.Rmd', output_format = 'github_document')
 vignette: >
   %\VignetteIndexEntry{tutorial}
   %\VignetteEngine{knitr::rmarkdown}
@@ -66,7 +65,7 @@ library(lava)
 
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
 
-    -   e.g [1000 genomes]([https://www.internationalgenome.org/data/)](https://www.internationalgenome.org/data/)){.uri}
+    -   e.g [1000 genomes](%5Bhttps://www.internationalgenome.org/data/)](<https://www.internationalgenome.org/data/>)){.uri}
 
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
@@ -80,13 +79,13 @@ library(lava)
 
         -   set to 0 for continuous phenotypes (important!)
 
-    -   'prevalence' (optional)
+    -   'prevalence' (optional): the population prevalence of binary phenotypes
 
-        -   this is only relevant if you want an estimate of the local population h2 for binary phenotypes. Estimates of the sample h2 are still provided
+        -   this is only relevant if you want an estimate of the local population h2 for binary phenotypes. Estimates of the observed local sample h2 are still provided
 
     -   'filename': paths and file names to the relevant summary statistics
 
--   **Summary statistics** for all phenotypes of interest. To accommodate common summary statistics formats, a number of different column names are possible for the same column type (but only ONE should be provided; i.e do not retain multiple SNP ID columns):
+-   **Summary statistics** for all phenotypes of interest. To accommodate common summary statistics formats, a number of different column names are possible for the same column type (but only ONE should be provided; i.e do not provide a file that contains multiple valid SNP ID columns):
 
     -   'SNP' / 'ID' / 'SNPID_UKB'/ 'SNPID' / 'MarkerName' / 'RSID': SNP IDs
 
@@ -112,7 +111,7 @@ library(lava)
 
     -   'SNPS': list of SNPS (optional)
 
-        -   note: if a SNP list is provided, coordinates will be ignored and the reference data will be subsetted based on SNP IDs instead. This can be convenient if the locus definition file is based on a different GRChX version than the reference data. If no SNP list is provided, the GRChX versions of reference and the locus file MUST match!
+        -   note: if a SNP list is provided, coordinates will be ignored and the reference data will be subsetted based on SNP IDs instead. This can be convenient if the locus definition file is based on a different GRChX version than the reference data. If no SNP list is provided, the versions of reference and the locus file MUST match!
 
 -   **Sample overlap file** (optional)
 
@@ -130,7 +129,7 @@ setwd("~/Programs/R/lava/vignettes/data")    # adapt as necessary
 input = process.input(input.info.file="input.info.txt",           # input info file
                       sample.overlap.file="sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
                       ref.prefix="g1000_test",                    # reference genotype data prefix
-                      phenos=c("depression","neuro","bmi"))            # subset of phenotypes listed in the input info file that we want to process
+                      phenos=c("depression","neuro","bmi"))       # subset of phenotypes listed in the input info file that we want to process
 
 # inspect the processed input data
 ls(input)				      # this is actually an environment; hence ls() rather than str()

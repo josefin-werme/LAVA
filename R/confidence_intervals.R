@@ -37,7 +37,6 @@ ci.bivariate = function(K, omega, sigma, n.iter=10000) {
 }
 
 
-
 ### MULTILPE REG ###
 # expects omega.x to be invertible
 ci.multivariate = function(K, omega, sigma, n.iter=10000) {
@@ -68,7 +67,6 @@ ci.multivariate = function(K, omega, sigma, n.iter=10000) {
   )
   return(ci)
 }
-
 
 
 estimate.std = function(draw, sigma) {

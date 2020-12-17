@@ -50,3 +50,14 @@ conditional.norm = function(obs, means, sds) {
   prob = prob + suppressWarnings(pnorm(-obs, mean=means, sd=sds, lower.tail=T))
   return(mean(prob, na.rm=T))
 }
+
+# single indices x and y, vector of indices z
+partial.cor = function(omega, x, y, z) {
+  p.cov = partial.cov(omega, x, y, z)
+  return(p.cov/sqrt(partial.var(omega, x, z) * partial.var(omega, y, z)))
+}
+
+# single indices x and y, vector of indices z
+partial.cov = function(omega, x, y, z) {omega[x,y] - t(omega[z,x]) %*% solve(omega[z,z]) %*% omega[z,y]}
+
+partial.var = function(omega, x, z) {omega[x,x] - t(omega[z,x]) %*% solve(omega[z,z]) %*% omega[z,x]}
