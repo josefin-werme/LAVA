@@ -2,17 +2,17 @@
 title: "LAVA TUTORIAL"
 author: "Josefin Werme, CTG Lab, VU Amsterdam"
 date: "18th Dec, 2020"
-#output: rmarkdown::html_vignette
-output: github_document
+output: rmarkdown::html_vignette
+# rmarkdown::render('tutorial.Rmd', output_format = 'github_document')
 vignette: >
   %\VignetteIndexEntry{tutorial}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r~g~*) analysis **[paper ref]**.
+This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r\~g\~*) analysis **[paper ref]**.
 
-LAVA can analyse the local *r~g~* between two or more phenotypes, analyse both binary and continuous phenotypes, and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest, which may be used to filter out unassociated loci.
+LAVA can analyse the local *r\~g\~* between two or more phenotypes, analyse both binary and continuous phenotypes, and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest, which may be used to filter out unassociated loci.
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
@@ -26,7 +26,9 @@ knitr::opts_chunk$set(
 ```
 
 ## Installing LAVA
+
 To read in the genotype data, LAVA uses functions from the snpStats packge. As this package needs to be installed using BiocManager, its easiest to do so before installing LAVA
+
 ```{r, eval=F}
 install.packages("BiocManager") #, repos='http://cran.rstudio.com/')
 library("BiocManager")
@@ -34,17 +36,20 @@ BiocManager::install("snpStats")
 ```
 
 You will also need devtools for the installation
+
 ```{r, eval=F}
 install.packages("devtools")
 library("devtools")
 ```
 
 LAVA can then be installed directly from github
+
 ```{r, eval=F}
 devtools::install_github("https://github.com/josefin-werme/lava.git")
 ```
 
 ..or by downloading the code and installing it from a local directory
+
 ```{r, eval=F}
 lava.path = "~/Programs/R/lava"       # edit as necessary
 devtools::install(lava.path)
@@ -54,7 +59,6 @@ devtools::install(lava.path)
 library(lava)
 ```
 
-
 ## Input format
 
 *NOTE: Example input files can be found in the 'vignettes/data' directory*
@@ -62,7 +66,8 @@ library(lava)
 #### As input, LAVA needs the following data:
 
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
-    -     e.g. [1000 genomes](https://www.internationalgenome.org/data/)
+
+    -   e.g [1000 genomes]([https://www.internationalgenome.org/data/)](https://www.internationalgenome.org/data/)){.uri}
 
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
@@ -75,22 +80,24 @@ library(lava)
     -   *'controls'*: number of controls
 
         -   set to 0 for continuous phenotypes
+
             -   *Info about the number of cases and controls is required in order to properly reconstruct the joint genetic effects for binary phenotypes (see **[paper ref]**)*
-            
+
     -   *'prevalence'* (optional)
+
         -   this is only relevant if you want an estimate of the local population h2 for binary phenotypes. Estimates of the sample h2 are still provided
 
     -   *'filename'*: filenames and paths to the relevant summary statistics
 
 -   **Summary statistics** for all phenotypes of interest. To accommodate common summary statistics formats, a number of different column names are possible for the same column type (but only ONE should be provided; i.e do not retain multiple SNP ID columns):
 
-    -   'SNP' / 'ID' / 'SNPID\_UKB'/ 'SNPID' / 'MarkerName' / 'RSID': SNP IDs
+    -   'SNP' / 'ID' / 'SNPID_UKB'/ 'SNPID' / 'MarkerName' / 'RSID': SNP IDs
 
     -   'A1' / 'ALT': effect allele
 
     -   'A2' / 'REF': reference allele
 
-    -   'N' / 'NMISS' / 'N\_analyzed': number of samples
+    -   'N' / 'NMISS' / 'N_analyzed': number of samples
 
     -   'Z' / 'T' / 'STAT' / 'Zscore': if provided, no p-values or coefficients are needed; otherwise, please provide:
 
@@ -105,7 +112,7 @@ library(lava)
     -   'LOC': locus ID
 
     -   'CHR', 'START', 'STOP': coordinates
-    
+
     -   'SNPS': list of SNPS (optional)
 
         -   note: if a SNP list is provided, coordinates will be ignored and the reference data will be subsetted based on SNP IDs instead. This can be convenient if the locus definition file is based on a different GRChX version than the reference data. If no SNP list is provided, the GRChX versions of reference and the locus file MUST match!
@@ -113,7 +120,6 @@ library(lava)
 -   **Sample overlap file** (optional)
 
     -   This can be obtained using cross-trait LDSC (check out the 'vignettes/get_sample_overlap.Rmd' file for a walk through on how to do this)
-
 
 ## Process input
 
@@ -126,7 +132,7 @@ Run the script below to process the sample input files. If you wish, you can exa
 
 ### Read in summary statistics and related info
 input = process.input(input.info.file="data/input.info.txt",           # input info file
-                      sample.overlap.file="data/sample.overlap.dat",   # sample overlap file (can be set to NULL if there is no overlap)
+                      sample.overlap.file="data/sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
                       ref.prefix="data/g1000_test",                    # reference genotype data prefix
                       phenos=c("depression","neuro","bmi"))            # subset of phenotypes listed in the input info file that we want to process
 
@@ -161,11 +167,11 @@ If we inspect the locus object, we can see that it contains a lot of info about 
 
 -   The number of SNPs ('K.block') / PCs ('K') within the locus
 
--   The (estimated) PC projected joint SNP effects, $\delta$ ('delta')
+-   The (estimated) PC projected joint SNP effects, $\\delta$ ('delta')
 
--   The sampling covariance $\sigma^2$ ('sigma')
+-   The sampling covariance $\\sigma^2$ ('sigma')
 
--   The genetic covariance matrix $\Omega$ ('omega'), with corresponding correlation matrix $\Omega^*$ ('omega.cor'):$\Omega = t(\delta)'\delta / K-\sigma^2$
+-   The genetic covariance matrix $\\Omega$ ('omega'), with corresponding correlation matrix $\\Omega^\*$ ('omega.cor'):$\\Omega = t(\\delta)'\\delta / K-\\sigma^2$
 
 More information about the return variables can be found in the function documentation
 
@@ -186,7 +192,7 @@ locus$N
 
 ## Perform the univariate test
 
-If we determine the amount of local genetic signal for all phenotypes of interest, we can filter out unassociated loci and dramatically speed up the local r~*g*~ analysis. This is done with the univariate test.
+If we determine the amount of local genetic signal for all phenotypes of interest, we can filter out unassociated loci and dramatically speed up the local r\~*g*\~ analysis. This is done with the univariate test.
 
 After obtaining the locus object, we can pass this object directly to the run.univ() function in order to perform the univariate test
 
@@ -198,7 +204,7 @@ run.univ(locus)
 run.univ(locus, phenos=c("depression","bmi"))
 ```
 
-Here, there was little evidence of any signal for either phenotypes, and there will be little point in testing the local r~*g*~.
+Here, there was little evidence of any signal for either phenotypes, and there will be little point in testing the local r\~*g*\~.
 
 If we check another locus however:
 
@@ -209,9 +215,9 @@ run.univ(locus)
 
 we see that there is plenty of signal for all phenotypes, and we can proceed with the bivariate test
 
-## Perform a bivariate local r~*g*~ analysis
+## Perform a bivariate local r\~*g*\~ analysis
 
-To proceed with the bivariane r~*g*~ analysis, testing the local r~*g*~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function 
+To proceed with the bivariane r\~*g*\~ analysis, testing the local r\~*g*\~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function
 
 ```{r}
 run.bivar(locus)
@@ -230,6 +236,7 @@ run.bivar(locus, phenos=c("neuro","bmi","depression"))
 ```
 
 To filter automatically based on the univariate signal, you can also use the run.univ.bivar() function to perform both tests in one go, and only performs the bivariate test for the phenotypes that passed univariate significance
+
 ```{r}
 # with the default p-value threshold of XXXX
 run.univ.bivar(locus)
@@ -240,50 +247,54 @@ run.univ.bivar(locus, univ.thresh = 1e-8)
 
 as you can see, this function only proceeds with the bivariate analysis for all the phenotypes that reach univariate significance at the specified threshold.
 
-
 ## Multivariate local genetic association approaches
+
 For loci in which you find significant correlations between more than two phenotypes, you might want to apply one of two possible multivariate approaches, which allow you to compute conditional local genetic correlations
 
-
 ### Multiple regression
-The multiple regression allows you to model the genetic signal for an outcome phenotype using several other predictor phenotypes simultaneously. When doing so, any potential local r~*g*~ between the predictor phenotypes will be accounted for, i.e., their genetic association with the outcome will be conditional on all the other predictors
 
+The multiple regression allows you to model the genetic signal for an outcome phenotype using several other predictor phenotypes simultaneously. When doing so, any potential local r\~*g*\~ between the predictor phenotypes will be accounted for, i.e., their genetic association with the outcome will be conditional on all the other predictors
 
-** TODO : select another locus / phenotypes where there is more signal **
-
+\*\* TODO : select another locus / phenotypes where there is more signal \*\*
 
 ```{r}
 
 # For this analysis we will use a locus and phenotype subset in which there is a bit more signal
-locus = process.locus(loci[4,], input)
-run.multireg(locus)
+#locus = process.locus(loci[4,], input)
+#run.multireg(locus)
 
 ```
 
-
-
-
 ### Partial correlation
 
+------------------------------------------------------------------------
 
+## Example analysis script for bivariate r\~*g*\~ analysis across all loci
 
-
----
-
-## Example analysis script for bivariate r~*g*~ analysis across all loci
 If you are interested in e.g. the local bivariate genetic correlations between a large amount of phenotypes, we advice using a cluster computer. The example analysis script below shows how you might set up an R script that can be called from the command line
+
+#### Bash script
+
+```{bash, eval=F}
+Rscript "g1000_test" "test.loci" "input.info.file" "sample.overlap.file" "depression;bmi"
+```
+
+#### R script
+
 ```{r, eval=F}
 # command line arguments, specifying input/output file names and phenotype subset
-arg = commandArgs(T); ref.dat = arg[1]; loc.file = arg[2]; info.file = arg[3]; phenos = unlist(strsplit(arg[4],";")); sample.overlap.file = arg[5]; out.fname = arg[6]
+arg = commandArgs(T); ref.prefix = arg[1]; loc.file = arg[2]; info.file = arg[3]; sample.overlap.file = arg[4]; phenos = unlist(strsplit(arg[5],";")); out.fname = arg[6]
+
 library(data.table); library(lava); print(paste("Running LAVA version",packageVersion("lava")))
 
 ### Read in data
 loci = read.loci(loc.file); n.loc = nrow(loci)
-input = process.input(info.file, sample.overlap.file, ref.dat, phenos)
+input = process.input(info.file, sample.overlap.file, ref.prefix, phenos)
 
 print(paste("Starting LAVA analysis for",n.loc,"loci"))
 progress = ceiling(quantile(1:n.loc, seq(.05,1,.05)))   # (if you want to print the progress)
 
+### Analyse
 u=b=list()
 for (i in 1:n.loc) {
         if (i %in% progress) print(paste("..",names(progress[which(progress==i)])))     # (printing progress)

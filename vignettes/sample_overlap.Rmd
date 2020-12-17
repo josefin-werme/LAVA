@@ -1,0 +1,66 @@
+---
+title: "LAVA TUTORIAL"
+author: "Josefin Werme, CTG Lab, VU Amsterdam"
+date: "18th Dec, 2020"
+output: rmarkdown::github_document
+vignette: >
+  %\VignetteIndexEntry{tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Obtaining sample overlap from LDSC
+
+To correct for potential sample overlap, LAVA uses the known or estimated sampling correlation (i.e. the phenotypic correlation that is due to sample overlap). If unknown, the intercept from cross-trait LDSC can be used to as an estimation of the sampling correlation (see [Bulik-Sullivan et al. 2015](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4797329/) for details)
+
+This tutorial will show you how you can create create a sampling correlation matrix from the results of cross-trait LDSC.
+
+#### 1. Perform cross-trait LDSC for all pairs of phenotypes (including each phenotype with itself)
+
+-   see [LDSC github page](https://github.com/bulik/ldsc/wiki/Heritability-and-Genetic-Correlation) info on how to do this).
+
+#### 2. Add all the output to a single file (in bash)
+
+```{bash, eval=F}
+
+FILES=($(ls *_rg.log))		  # assuming the output format is [phenotype]_rg.log
+N=$(echo ${#FILES[@]})  		# and that all combinations of penotypes have been analysed
+
+for I in ${FILES[@]}; do
+        PHEN=$(echo $I | sed 's/_rg\.log//')
+        
+        # subset log files to relevant output
+        tail -n$(($N+4)) $I | head -$((N+1)) > $PHEN.rg 	# (adapt as necessary)
+        
+        # add to single data set
+        if [[ $I == ${FILES[0]} ]]; then
+        	cat $PHEN.rg > all.rg		# only including the header for the first phenotypes
+        else
+        	cat $PHEN.rg | sed '1d' >> all.rg
+        fi
+done
+```
+
+#### 3. Extract the intercepts and create a sampling correlation matrix (in R)
+
+```{r, eval=F}
+scor = read.table("all.rg",header=T)              # read in
+scor = scor[,c("p1","p2","gcov_int")]             # retain key headers
+scor$p1 = gsub("_munge.sumstats.gz","",scor$p1)   # assuming the munged files have format [phenotype]_munge.sumstats.gz
+scor$p2 = gsub("_munge.sumstats.gz","",scor$p2)   # (adapt as necessary)
+
+phen = unique(scor$p1)                  # obtain list of all phenotypes (assuming all combinations have been analysed)
+n = length(phen)
+mat = matrix(NA,n,n)                    # create matrix
+rownames(mat) = colnames(mat) = phen    # set col/rownames
+
+for (i in phen) {
+        for (j in phen) {
+                mat[i,j] = subset(scor, p1==i & p2==j)$gcov_int
+        }
+}
+
+if (!all(t(mat)==mat)) { mat[lower.tri(mat)] = t(mat)[lower.tri(mat)] }  # sometimes there might be small differences in gcov_int depending on which phenotype was analysed as the outcome / predictor
+mat = round(cov2cor(mat),5)                       # standardise
+write.table(mat, "sample.overlap.txt", quote=F)   # save
+```
