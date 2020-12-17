@@ -67,24 +67,24 @@ directory*
 -   **Input info file**, used for convenient processing of multiple
     phenotypes. Requires the columns:
 
-    -   ***‘phenotype’***: phenotype IDs
+    -   ***phenotype***: phenotype IDs
 
-    -   ***‘cases’***: number of cases
+    -   ***cases***: number of cases
 
         -   set to 1 or the total sample size for continuous phenotypes
 
-    -   ***‘controls’:*** number of controls
+    -   ***controls:*** number of controls
 
         -   set to 0 for continuous phenotypes (important!)
 
-    -   ***‘prevalence’*** (optional): the population prevalence of
-        binary phenotypes
+    -   ***prevalence*** (optional): the population prevalence of binary
+        phenotypes
 
         -   this is only relevant if you want an estimate of the local
             population h2 for binary phenotypes. Estimates of the
             observed local sample h2 are still provided
 
-    -   ***‘filename’***: paths and file names to the relevant summary
+    -   ***filename***: paths and file names to the relevant summary
         statistics
 
 -   **Summary statistics** for all phenotypes of interest. To
@@ -93,35 +93,34 @@ directory*
     should be provided; i.e do not provide a file that contains multiple
     valid SNP ID columns):
 
-    -   ***‘SNP’ / ‘ID’ / ‘SNPID\_UKB’/ ‘SNPID’ / ‘MarkerName’ /
-        ‘RSID’***: SNP IDs
+    -   ***SNP / ID / SNPID\_UKB/ SNPID / MarkerName / ‘RSID’***: SNP
+        IDs
 
-    -   ***‘A1’ / ‘ALT’***: effect allele
+    -   ***A1 / ALT***: effect allele
 
-    -   ***‘A2’ / ‘REF’***: reference allele
+    -   ***A2 / REF***: reference allele
 
-    -   ***‘N’ / ‘NMISS’ / ‘N\_analyzed’***: number of samples
+    -   ***N / NMISS / N\_analyzed***: number of samples
 
-    -   ***‘Z’ / ‘T’ / ‘STAT’ / ‘Zscore’***: if provided, no p-values or
+    -   ***Z / T / STAT / Zscore***: if provided, no p-values or
         coefficients are needed; otherwise, please provide:
 
-        -   ***‘B’ / ‘BETA’ / ‘OR’ / ‘logOdds’***: effect size
-            coefficients
+        -   ***B / BETA / OR / logOdds***: effect size coefficients
 
             -   please provide beta coefficients for continuous
                 phenotypes, and odds ratios / log odds for binary
                 phenotypes
 
-        -   ***‘P’***: p-values
+        -   ***P***: p-values
 
 -   **Locus definition file**: File that defines loci either based on
     genomic coordinates or a list of SNPs. Required headers:
 
-    -   ***‘LOC’***: locus ID
+    -   ***LOC***: locus ID
 
-    -   ***‘CHR’, ‘START’, ‘STOP’***: coordinates
+    -   ***CHR, START, STOP***: coordinates
 
-    -   ***‘SNPS’***: list of SNPS (optional)
+    -   ***SNPS***: list of SNPS (optional)
 
         -   note: if a SNP list is provided, coordinates will be ignored
             and the reference data will be subsetted based on SNP IDs
@@ -281,11 +280,11 @@ object the run.bivar() function
 ``` r
 run.bivar(locus)
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression   bmi 0.0723039  -0.18450   0.32492 0.00522785        0  0.10816
-#> 2      neuro   bmi 0.1069490  -0.09658   0.31608 0.01143810        0  0.09990
+#> 1 depression   bmi 0.0723039  -0.17957   0.32759 0.00522785        0  0.10893
+#> 2      neuro   bmi 0.1069490  -0.09284   0.31378 0.01143810        0  0.09866
 #>          p
-#> 1 0.568418
-#> 2 0.301154
+#> 1 0.566792
+#> 2 0.301286
 ```
 
 When multiple phenotypes are entered simultaneously, the last phenotype
@@ -300,11 +299,11 @@ argument:
 ``` r
 run.bivar(locus, phenos=c("neuro","bmi","depression"))
 #>   phen1      phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 neuro depression 0.5278610   0.27708   0.78421 0.27863700  0.07677  0.61499
-#> 2   bmi depression 0.0723039  -0.17989   0.32521 0.00522785  0.00000  0.10824
+#> 1 neuro depression 0.5278610   0.27342   0.78365 0.27863700  0.07476  0.61411
+#> 2   bmi depression 0.0723039  -0.18775   0.33074 0.00522785  0.00000  0.11202
 #>             p
-#> 1 0.000481136
-#> 2 0.566349000
+#> 1 0.000497011
+#> 2 0.566488000
 ```
 
 To filter automatically based on the univariate signal, you can also use
@@ -323,11 +322,11 @@ run.univ.bivar(locus)
 #> 
 #> $bivar
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression   bmi 0.0723039  -0.17841   0.32609 0.00522785        0  0.10878
-#> 2      neuro   bmi 0.1069490  -0.09581   0.31501 0.01143810        0  0.09923
+#> 1 depression   bmi 0.0723039  -0.18812   0.33123 0.00522785        0   0.1126
+#> 2      neuro   bmi 0.1069490  -0.09770   0.30984 0.01143810        0   0.0961
 #>          p
-#> 1 0.566060
-#> 2 0.301103
+#> 1 0.566455
+#> 2 0.298478
 
 # or with a custom p-value threshold
 run.univ.bivar(locus, univ.thresh = 1e-8)
@@ -339,7 +338,7 @@ run.univ.bivar(locus, univ.thresh = 1e-8)
 #> 
 #> $bivar
 #>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper        p
-#> 1 neuro   bmi 0.106949  -0.09628   0.31176 0.0114381        0  0.09719 0.303243
+#> 1 neuro   bmi 0.106949  -0.09634   0.31758 0.0114381        0  0.10086 0.301088
 ```
 
 As you can see, this function will only proceed with the bivariate
@@ -360,10 +359,10 @@ run.univ.bivar(locus, univ.thresh=1e-8, return.unanalysed=T)
 #> $bivar
 #>        phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper
 #> 2 depression   bmi       NA        NA        NA        NA       NA       NA
-#> 1      neuro   bmi 0.106949  -0.09986   0.30855 0.0114381        0  0.09542
+#> 1      neuro   bmi 0.106949  -0.09477   0.30811 0.0114381        0  0.09523
 #>          p
 #> 2       NA
-#> 1 0.299925
+#> 1 0.300241
 ```
 
 ## Multivariate approaches
@@ -417,11 +416,11 @@ run.univ.bivar(locus)
 #> 
 #> $bivar
 #>    phen1          phen2        rho rho.lower rho.upper          r2 r2.lower
-#> 1 asthma hypothyroidism  0.0452930  -0.33905   0.43915 0.002051460        0
-#> 2 rheuma hypothyroidism -0.0199968  -0.20411   0.16027 0.000399874        0
+#> 1 asthma hypothyroidism  0.0452930  -0.34263   0.44023 0.002051460        0
+#> 2 rheuma hypothyroidism -0.0199968  -0.19921   0.15877 0.000399874        0
 #>   r2.upper        p
-#> 1  0.20891 0.799961
-#> 2  0.04558 0.827897
+#> 1  0.21674 0.801576
+#> 2  0.04355 0.826011
 ```
 
 This suggests \[…\]; We can then run the multiple regression for all
@@ -503,7 +502,7 @@ for (i in 1:n.loc) {
         # If you require all phenotypes to be analysed, also include the all(phenos %in% locus$phenos) condition in the if statement as well
         if (!is.null(locus) & all(phenos %in% locus$phenos)) {
                 # extract some general locus info for the output
-                loc.info = data.frame(locus = locus$id, chr = locus$chr, start = locus$start, stop = locus$stop, n.snps = locus$N.snps, n.pcs = locus$K)
+                loc.info = data.frame(locus = locus$id, chr = locus$chr, start = locus$start, stop = locus$stop, n.snps = locus$n.snps, n.pcs = locus$K)
                 
                 # run the univariate and bivariate tests
                 loc.out = run.univ.bivar(locus, univ.thresh=1e-4)
