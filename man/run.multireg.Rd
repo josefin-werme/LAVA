@@ -16,17 +16,29 @@ run.multireg(
 )
 }
 \arguments{
-\item{locus}{Locus object created using the the \code{\link{process.locus}} function, containing all the relevant parameters for the phenotypes of interest}
+\item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional parameter specifying subset of phenotypes. If NULL, all phenotypes in the locus object will be analysed. NOTE: the last phenotype will be treated as the outcome}
+\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome}
 
-\item{adap.thresh}{Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.}
+\item{adap.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
+Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 
-\item{p.values}{Set to F if p-values are not desired.}
+\item{p.values}{Set to F to suppress p-values}
 
-\item{CIs}{Set to F to if confidence intervals are not desired.}
+\item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)}
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
+
+#' @return Data frame with the columns:
+\itemize{
+    \item pretictors / outcome - analysed phenotypes
+    \item gamma - standardised multiple regression coefficient
+    \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
+    \item r2 - proportion of variance in genetic signal for the outcome explained by all predictors simultaneously
+    \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+    \item p - permutation p-values for the gammas
+}}
 }
 \description{
 Multiple local genetic regression analysis

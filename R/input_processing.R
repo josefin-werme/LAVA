@@ -24,6 +24,8 @@
 #'     \item N - vector of average N across locus SNPs for each phenotype
 #'     \item phenos - phenotype IDs
 #'     \item binary - boolean vector indicating whether phentoypes are binary
+#'     \item h2.obs
+#'     \item h2.latent
 #' }
 #' 
 #' @export

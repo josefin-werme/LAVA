@@ -8,24 +8,36 @@ run.partial.cor(
   locus,
   phenos = NULL,
   adap.thresh = c(1e-04, 1e-06),
-  CIs = T,
   p.values = T,
+  CIs = T,
   max.r2 = 0.95,
   param.lim = 1.25
 )
 }
 \arguments{
-\item{locus}{Locus object}
+\item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{List of phenotypes to analyse (first two are p1 & p2, the remaining are Z)}
+\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the first two are p1 & p2 (the phenotypes of interest), the remaining are Z}
 
-\item{CIs}{Set to F to if confidence intervals are not desired.}
+\item{p.values}{Set to F to suppress p-values}
 
-\item{p.values}{Set to F if p-values are not desired.}
+\item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{max.r2}{Max r2 threshold for the regression of x~z and y~z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.}
+\item{max.r2}{Max r2 threshold for the regression of p1 ~ Z and p2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
 
-\item{adapt.thresh}{Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.}
+#' @return Data frame with the columns:
+\itemize{
+    \item phen1 / phen2 - analysed phenotypes
+    \item rho - standardised coefficient for the local genetic correlation
+    \item rho.lower / rho.upper - 95\% confidence intervals for rho
+    \item r2 - proportion of variance in genetic signal for phen1 explained by phen2 (and vice versa)
+    \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+    \item p - permutation p-values for the local genetic correlation
+}}
+
+\item{adapt.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
+Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 }
 \description{
 Will perform the partial correlation between the first two phenotypes (p1,p2) conditioned on the rest (Z). 

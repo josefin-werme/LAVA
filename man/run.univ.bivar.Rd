@@ -9,27 +9,36 @@ run.univ.bivar(
   phenos = NULL,
   univ.thresh = 0.05,
   adap.thresh = c(1e-04, 1e-06),
+  p.values = T,
+  CIs = T,
+  param.lim = 1.25,
   return.unanalysed = F
 )
 }
 \arguments{
-\item{locus}{Locus object created using the the \code{\link{process.locus}} function}
+\item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional parameter specifying subset of phenotypes. If NULL, all phenotypes will be analysed}
+\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest}
 
-\item{univ.thresh}{P-value threshold for the univariate test used to determine whether a bivariate test should be performed.}
+\item{univ.thresh}{P-value threshold for the univariate test, used to determine whether phenotypes exhibit sufficient local heritability for a bivariate test}
 
-\item{adap.thresh}{P-value thresholds for the adaptive permutation procedure, determining the number of iterations to use for the bivariate test.
-Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-If set to NULL, the maximum number of permutations is capped at the default (note: this significantly speeds up the analysis, but results in poor accuracy for low p-values).}
+\item{adap.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
+Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 
-\item{return.unanalysed}{If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed.
+\item{p.values}{Set to F to suppress p-values}
+
+\item{CIs}{Set to F to suppress 95\% confidence intervals}
+
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)}
+
+\item{return.unanalysed}{If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed
 Otherwise, only the analysed phenotypes will be returned (default).}
 }
 \value{
-List containing the results from the univariate and bivariate tests
+List containing the results from the univariate and bivariate tests (see ?run.univ() and ?run.bivar() for more info)
 }
 \description{
 Will only perform bivariate test for phenotypes that pass the univariate significance threshold.
-If multiple phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
+If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
 }

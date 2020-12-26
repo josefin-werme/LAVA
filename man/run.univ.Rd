@@ -4,13 +4,25 @@
 \alias{run.univ}
 \title{Run univariate analysis}
 \usage{
-run.univ(locus, phenos = NULL)
+run.univ(locus, phenos = NULL, var = F)
 }
 \arguments{
-\item{locus}{Locus object created using the the \code{\link{process.locus}} function}
+\item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional parameter specifying subset of phenotypes. If NULL, all phenotypes will be analysed}
+\item{phenos}{Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes will be analysed}
+
+\item{var}{Set to T to return variance estimate}
+}
+\value{
+Data frame with the columns:
+\itemize{
+    \item phen - analysed phenotypes
+    \item var - local genetic variance
+    \item h2.obs - observed heritability
+    \item h2.latent - population heritability (only relevant for binary phenotypes; requires population prevalence to from input info file)
+    \item p - p-values from the univariate test (F-test for continuous, Chi-sq for binary)
+}
 }
 \description{
-Performs univariate test to determine the presence of local genetic signal (i.e. local heritability)
+Performs univariate test to determine the presence of local genetic signal (i.e. the local heritability)
 }

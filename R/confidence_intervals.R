@@ -27,7 +27,7 @@ ci.bivariate = function(K, omega, sigma, n.iter=10000) {
 		
 		# quantiles r2
 		qq = apply(r^2, 1, quantile, c(0.025, 0.975), na.rm=T)
-		qq[qq < -1] = -1; qq[qq > 1] = 1
+		qq[qq < 0] = 0; qq[qq > 1] = 1
 		out$ci.r2.low = qq[1,]
 		out$ci.r2.high = qq[2,]
 		if (sign(out$ci.rho.low)!=sign(out$ci.rho.high)) out$ci.r2.low = 0  # set r2 lower to 0 if rho CI spans 0

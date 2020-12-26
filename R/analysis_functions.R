@@ -3,22 +3,25 @@
 #' Perform univariate and bivariate analysis, with univariate filtering
 #' 
 #' Will only perform bivariate test for phenotypes that pass the univariate significance threshold.
-#' If multiple phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
+#' If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
 #' 
-#' @param locus Locus object created using the the \code{\link{process.locus}} function
-#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes will be analysed
-#' @param univ.thresh P-value threshold for the univariate test used to determine whether a bivariate test should be performed.
-#' @param adap.thresh P-value thresholds for the adaptive permutation procedure, determining the number of iterations to use for the bivariate test.
-#' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-#' If set to NULL, the maximum number of permutations is capped at the default (note: this significantly speeds up the analysis, but results in poor accuracy for low p-values).
-#' @param return.unanalysed If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed.
+#' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
+#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
+#' @param univ.thresh P-value threshold for the univariate test, used to determine whether phenotypes exhibit sufficient local heritability for a bivariate test
+#' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
+#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param p.values Set to F to suppress p-values
+#' @param CIs Set to F to suppress 95\% confidence intervals
+#' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
+#' @param return.unanalysed If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed
 #' Otherwise, only the analysed phenotypes will be returned (default).
 #' 
-#' @return List containing the results from the univariate and bivariate tests
+#' @return List containing the results from the univariate and bivariate tests (see ?run.univ() and ?run.bivar() for more info)
 #' 
 #' @export
 #' 
-run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), return.unanalysed=F) {
+run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25, return.unanalysed=F) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
 	P = length(phenos)
 	
@@ -28,7 +31,7 @@ run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-
 	# bivariate analysis
 	if (!return.unanalysed) bivar=NULL else bivar = data.frame(phen1 = phenos[-P], phen2 = phenos[P], rho=NA, rho.lower=NA, rho.upper=NA, r2=NA, r2.lower=NA, r2.upper=NA, p=NA)
 	if (any(univ$p[-P] < univ.thresh) & univ$p[P] < univ.thresh) { 
-		bivar = run.bivar(locus, phenos = phenos[which(univ$p < univ.thresh)], adap.thresh=adap.thresh)
+		bivar = run.bivar(locus, phenos = phenos[which(univ$p < univ.thresh)], adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
 		if (return.unanalysed) { bivar = merge(data.frame(phen1 = phenos[-P]), bivar, all=T, sort=F); bivar = bivar[match(phenos[-P], bivar$phen1),]; bivar$phen2=phenos[P] }
 	}
 	return(list(univ=univ, bivar=bivar))
@@ -51,18 +54,27 @@ univariate.test = function(locus, phenos=NULL) {
 
 #' Run univariate analysis
 #' 
-#' Performs univariate test to determine the presence of local genetic signal (i.e. local heritability)
+#' Performs univariate test to determine the presence of local genetic signal (i.e. the local heritability)
 #' 
-#' @param locus Locus object created using the the \code{\link{process.locus}} function
-#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes will be analysed
+#' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
+#' @param phenos Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes will be analysed
+#' @param var Set to T to return variance estimate
 #' 
+#' @return Data frame with the columns:
+#' \itemize{
+#'     \item phen - analysed phenotypes
+#'     \item var - local genetic variance
+#'     \item h2.obs - observed heritability
+#'     \item h2.latent - population heritability (only relevant for binary phenotypes; requires population prevalence to from input info file)
+#'     \item p - p-values from the univariate test (F-test for continuous, Chi-sq for binary)
+#' }
 #' @export
-run.univ = function(locus, phenos=NULL) {
+run.univ = function(locus, phenos=NULL, var=F) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } }
 	P = length(phenos)
 	
 	univ = data.frame(phen = phenos)
-	#univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6)
+	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
 	univ$h2.obs = signif(locus$h2.obs[phenos], 6)
 	if (any(locus$binary[phenos])) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
 	univ$p = signif(univariate.test(locus, phenos), 6)
@@ -77,13 +89,24 @@ run.univ = function(locus, phenos=NULL) {
 #' and separate bivariate tests will be performed between this phenotype and all others.
 #' Note: this test is symmetric, which phenotype is considered predictor/outcome doesn't matter.
 #' 
-#' @param locus Locus object created using the the \code{\link{process.locus}} function, containing all the relevant parameters for the phenotypes of interest
-#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes in the locus object will be analysed
-#' @param adap.thresh Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.
-#' @param p.values Set to F if p-values are not desired.
-#' @param CIs Set to F to if confidence intervals are not desired.
+#' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
+#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
+#' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
+#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param p.values Set to F to suppress p-values
+#' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
 #' 
+#' @return Data frame with the columns:
+#' \itemize{
+#'     \item phen1 / phen2 - analysed phenotypes
+#'     \item rho - standardised coefficient for the local genetic correlation
+#'     \item rho.lower / rho.upper - 95\% confidence intervals for rho
+#'     \item r2 - proportion of variance in genetic signal for phen1 explained by phen2 (and vice versa)
+#'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+#'     \item p - permutation p-values for the local genetic correlation
+#' }
 #' @export
 run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } } ## 20-09-24: added error if faulty phenotype IDs are provided
@@ -126,13 +149,24 @@ run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, 
 
 #' Multiple local genetic regression analysis
 #' 
-#' @param locus Locus object created using the the \code{\link{process.locus}} function, containing all the relevant parameters for the phenotypes of interest
-#' @param phenos Optional parameter specifying subset of phenotypes. If NULL, all phenotypes in the locus object will be analysed. NOTE: the last phenotype will be treated as the outcome
-#' @param adap.thresh Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.
-#' @param p.values Set to F if p-values are not desired.
-#' @param CIs Set to F to if confidence intervals are not desired.
+#' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
+#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome
+#' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
+#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param p.values Set to F to suppress p-values
+#' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
 #' 
+#' #' @return Data frame with the columns:
+#' \itemize{
+#'     \item pretictors / outcome - analysed phenotypes
+#'     \item gamma - standardised multiple regression coefficient
+#'     \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
+#'     \item r2 - proportion of variance in genetic signal for the outcome explained by all predictors simultaneously
+#'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+#'     \item p - permutation p-values for the gammas
+#' }
 #' @export
 run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste("Invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))) } } ## 20-09-24: added error if faulty phenotype IDs are provided
@@ -149,12 +183,11 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 	params = c("gamma.std","r2")
 	ci.params = c("gamma.lower","gamma.upper","r2.lower","r2.upper")
 	
-	#x k=1;j=1
 	for (j in 1:length(models)) {
 		cond[[j]] = list()
 		for (k in 1:ncol(models[[j]])) {
 			mod.idx = models[[j]][,k]		# get index of current model (actually by name, rather than 'index')
-			Pm = length(mod.idx)			# no predictors in curr model
+			Pm = length(mod.idx)			# no. predictors in curr model
 			
 			# check invertibility of omega.x
 			eig = eigen(locus$omega[mod.idx,mod.idx]); if (any(eig$values / (sum(eig$values)/Pm) < 1e-4)) { stop("omega.X not invertible") }; rm(eig)
@@ -167,7 +200,7 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			cond[[j]][[k]]$predictors = mod.idx; cond[[j]][[k]]$outcome = Y
 			cond[[j]][[k]]$gamma.std = signif(mom$gamma.std, 6); cond[[j]][[k]]$r2 = rep(signif(mom$r2, 6), Pm)
 			
-			# confidence intervals
+			# 95% confidence intervals
 			if (CIs) {
 				ci = ci.multivariate(K=locus$K, omega=mom$omega, sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)])	# TODO: why subsetting sigma here but not omega?
 				cond[[j]][[k]]$gamma.lower = ci$gamma$ci.low; cond[[j]][[k]]$gamma.upper = ci$gamma$ci.high
@@ -182,7 +215,7 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T) # first param must be gamma/rho
 			
 			# cap r2 to 0 / 1 (CI's are already capped)
-			cond[[j]][[k]]$r2 = cap(cond[[j]][[k]]$r2, lim=c(0,1)) }
+			cond[[j]][[k]]$r2 = cap(cond[[j]][[k]]$r2, lim=c(0,1))
 			
 			cond[[j]][[k]] = cond[[j]][[k]][,c("predictors","outcome","gamma.std","gamma.lower","gamma.upper","r2","r2.lower","r2.upper","p")]
 			colnames(cond[[j]][[k]])[which(colnames(cond[[j]][[k]])=="gamma.std")] = "gamma"
@@ -197,18 +230,29 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 
 #' Partial correlation analysis
 #' 
-#' Will perform the partial correlation between the first two phenotypes (p1,p2) conditioned on the rest (Z). 
+#' Will perform the partial correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
 #' Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector to the 'phenos' argument.
 #' 
-#' @param locus Locus object
-#' @param phenos List of phenotypes to analyse (first two are p1 & p2, the remaining are Z)
-#' @param adapt.thresh Adaptive iteration procedure for permutation p-values that increases the number of permutations for lower p-values. Can be set turned of by setting to NULL.
-#' @param CIs Set to F to if confidence intervals are not desired.
-#' @param p.values Set to F if p-values are not desired.
-#' @param max.r2 Max r2 threshold for the regression of x~z and y~z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
+#' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
+#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the first two are p1 & p2 (the phenotypes of interest), the remaining are Z
+#' @param adapt.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
+#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param p.values Set to F to suppress p-values
+#' @param CIs Set to F to suppress 95\% confidence intervals
+#' @param max.r2 Max r2 threshold for the regression of phen1 ~ Z and phen2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
 #' 
+#' #' @return Data frame with the columns:
+#' \itemize{
+#'     \item phen1 / phen2 - analysed phenotypes
+#'     \item rho - standardised coefficient for the local genetic correlation
+#'     \item rho.lower / rho.upper - 95\% confidence intervals for rho
+#'     \item r2 - proportion of variance in genetic signal for phen1 explained by phen2 (and vice versa)
+#'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+#'     \item p - permutation p-values for the local genetic correlation
+#' }
 #' @export
-run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T, p.values=T, max.r2=.95, param.lim=1.25) {
+run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste("Error: invalid phenotype ID provided:", paste(phenos[! phenos %in% locus$phenos]))); stop() } }
 	P = length(phenos); if (P < 3) { stop(paste0("Only ",P," phenotypes provided for partial correlation; need at least 3")) }
 	x = 1; y = 2; z = 3:P
@@ -236,7 +280,7 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T,
 	}
 	
 	# if r2 is < max.r2, proceed with pvalues
-	if (all(out[c("r2.p1_z","r2.p2_z")] < max.r2) & p.values) {
+	if (all(out[c("r2.phen1_z","r2.phen2_z")] < max.r2) & p.values) {
 		out$p = integral.p(pcov.integral, K=locus$K, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos], adap.thresh=adap.thresh)
 	}
 	
@@ -245,7 +289,8 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), CIs=T,
 	out = filter.params(data = out, params = params, param.lim = param.lim) # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
 	out$pcor = cap(out$pcor) # cap the pcor at -1/1 (CIs are capped already)
 	
-	return(as.data.frame(lapply(out, signif, 6)))
+	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
+	return(out)
 }
 
 

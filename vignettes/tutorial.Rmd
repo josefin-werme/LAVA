@@ -26,7 +26,7 @@ knitr::opts_chunk$set(
 
 ## Installing LAVA
 
-To read in the genotype data, LAVA uses functions from the snpStats packge. As this package needs to be installed using BiocManager, its easiest to do so before installing LAVA
+To read in the genotype data, LAVA uses functions from the snpStats packge. As this package needs to be installed using BiocManager, you should do so before installing LAVA
 
 ```{r, eval=F}
 install.packages("BiocManager")
@@ -85,7 +85,7 @@ library(lava)
 
 -   **Summary statistics** for all phenotypes of interest. To accommodate common summary statistics formats, a number of different column names are possible for the same column type (but only ONE should be provided; i.e do not provide a file that contains multiple valid SNP ID columns):
 
-    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / 'RSID'***: SNP IDs
+    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID***: SNP IDs
 
     -   ***A1 / ALT***: effect allele
 
@@ -137,7 +137,7 @@ head(input$ref$bim)   # bim file from reference data
 ?process.input()
 ```
 
-## Read in locus definitions and process a locus
+## Process sum-stats for a locus
 
 Before analysing the genetic correlation at a locus, we need to convert the marginal SNP effect sizes from GWAS to the corresponding joint effects in order to account for the LD in the locus. Only after we've done this, we can proceed with the analysis.
 
@@ -178,7 +178,7 @@ locus$phenos							# locus phenotypes
 
 ## Perform the univariate test
 
-If we determine the amount of local genetic signal for all phenotypes of interest, we can filter out unassociated loci and dramatically speed up the local r~*g*~ analysis. This is done with the univariate test.
+If we determine the amount of local genetic signal for all phenotypes of interest, we can filter out unassociated loci. This is done with the univariate test.
 
 After obtaining the locus object, we pass it directly to the run.univ() function in order to test the local heritability for all phenotypes (or a subset)
 
@@ -190,7 +190,7 @@ run.univ(locus)
 run.univ(locus, phenos=c("depression","bmi"))
 ```
 
-As there was little evidence of any genetic signal for either phenotypes, and there will be no point in testing the local r~*g*~ (and if we did, the estimates would be unreliable anyway as we would be dividing some covariance with close to zero variance)
+As there was little evidence of any genetic signal for either phenotypes, there will be no point in testing the local r~*g*~ (and if we did, the estimates would be unreliable anyway)..
 
 If we check another locus however:
 
@@ -201,7 +201,7 @@ run.univ(locus)
 
 we see that there is plenty of signal for all phenotypes, and we can proceed with the bivariate test!
 
-## Perform a bivariate local r~*g*~ analysis
+## Analyse the bivariate local r~*g*~ between two phenotypes
 
 To perform a bivariane r~*g*~ analysis, testing the local r~*g*~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function
 
@@ -235,7 +235,7 @@ If you would still like to print the bivariate output for unanalysed phentoypes,
 run.univ.bivar(locus, univ.thresh=1e-8, return.unanalysed=T)
 ```
 
-## Multivariate approaches
+## Apply the multivariate approaches to more than two phenotypes
 
 For loci in which you find significant correlations between more than two phenotypes, you might want to apply one of two possible multivariate approaches in order to compute conditional local genetic correlations within the locus
 
@@ -251,27 +251,32 @@ input = process.input(input.info.file="data/input.info.txt",
                       ref.prefix="data/g1000_test",
                       phenos=c("asthma","rheuma","diabetes","hypothyroidism"))
 
-locus = process.locus(loci[8,], input)
+locus = process.locus(loci[19,], input)
 ```
 
-Say that we are interested in modelling hypothyroidism as the outcome. Lets first check that there is actually some local genetic signal for all pentoypes, and that all predictors have a r~*g*~ with the outcome
+Say that we are interested in modelling hypothyroidism as the outcome. Lets first check that there is actually some local genetic signal for all phenotypes, and that all predictors show some r~*g*~ with the outcome within this locus
 
 ```{r}
-?run.univ.bivar()
 run.univ.bivar(locus)
 ```
 
-This suggests [...]; We can then run the multiple regression for all predictors. Here, the last phenotype will be treated as the outcome.
+They do! We can then run the multiple regression for all predictors.
+
+Here, the last phenotype will again be treated as the outcome, but since
 
 ```{r, eval=F}
 run.multireg(locus)
 ```
 
-Here you see that, by default, this function does not only return the full model with all predictors, but also all intermediate models. The reason for this is that when running a multiple regression, it is important to be aware of how each predictor affects the fit of all the other predictors in order to be able to interpret the results.
+Here you see that, by default, this function does not only return the full model with all predictors, but also all intermediate models. The reason for this is that when running a multiple regression it is important to be aware of how each predictor affects the fit of the other predictors in order to interpret the results correctly.
 
-For example, if I analyse three predictors of which two are very strongly associated with the outcome but also strongly correlated with each other, and the third is only moderately associated with the outcome but uncorrelated with any of the other predictors, the conditional associations between the strong, but collinear predictors and the outcome may appear weaker than the moderate, but not collinear predictors.
+For example, in this case we can see that both asthma and diabetes are quite significant in the two-predictor models with rheuma, but not in the full model, or the two-predictor model with asthma and diabetes. This indicates that there is some collinearity between these predictors, which explains why neither appear very significant in the full model.
 
-If for some reason you only want to return the full model, you can speed up the analysis by setting the 'only.full.model' argument to TRUE
+Had we not looked at the intermediate models beforehand, this pattern would have not been obvious. If we also didn't already know the bivariate correlations between the phenotypes, and only looked at the multivariate model, we might have made the erroneous conclusion that neither are relevant.
+
+**\>\>\> [ comment on model r2 ] \<\<\<**
+
+If for some reason you only want to return the full model, however, you can speed up the analysis by setting the 'only.full.model' argument to TRUE
 
 ```{r, eval=F}
 run.multireg(locus, only.full.model=T)
@@ -281,8 +286,28 @@ run.multireg(locus, only.full.model=T)
 
 In contrast with the multiple regression, the partial correlation allows you to compute the local r~*g*~ between two phenotypes of interest, conditioned on one or more other phenotypes.
 
+For this example, we will use the same locus and set of phenotypes as before. Lets say we are now interested in the partial correlation between hypothyroidism and diabetes. Recall that there was also some collinearity between asthma and diabetes. We can therefore expect that if we compute the partial correlation between hypothyroidism and diabetes conditioned on asthma, that asthma might account for a notable proportion of the r~*g*~ between hypothyroidism and asthma (which we determined to be .86, from the bivariate test earlier)
+
 ```{r, eval=F}
-run.partial.cor()
+run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
+```
+
+Indeed, here you see that the partial correlation has been almost halved, and is no longer significant. The columns r2.phen1_z and r2.phen2_z confirm that asthma explains a substantial proportion of genetic variance for both hypothyroidism and diabetes.
+
+If we instead condition on rheuma
+
+```{r, eval=F}
+run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
+```
+
+The partial correlation (.82) is now only slightly lower than the bivariate correlation (.86).
+
+As seen previously, this phenotype was far less strongly genetically correlated with hypothyroidism (at .53), and as indicated by the r2's here, it is also explains less of the genetic variance in hypothyroidism and diabetes compared to asthma.
+
+We can also condition on both asthma and rheuma (or any number of phenotypes) in one go:
+
+```{r, eval=F}
+run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 ```
 
 ------------------------------------------------------------------------
