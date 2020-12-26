@@ -262,9 +262,9 @@ run.univ.bivar(locus)
 
 They do! We can then run the multiple regression for all predictors.
 
-Here, the last phenotype will again be treated as the outcome, but since
+Here, the last phenotype will again be treated as the outcome
 
-```{r, eval=F}
+```{r, eval=T}
 run.multireg(locus)
 ```
 
@@ -278,7 +278,7 @@ Had we not looked at the intermediate models beforehand, this pattern would have
 
 If for some reason you only want to return the full model, however, you can speed up the analysis by setting the 'only.full.model' argument to TRUE
 
-```{r, eval=F}
+```{r, eval=T}
 run.multireg(locus, only.full.model=T)
 ```
 
@@ -288,7 +288,7 @@ In contrast with the multiple regression, the partial correlation allows you to 
 
 For this example, we will use the same locus and set of phenotypes as before. Lets say we are now interested in the partial correlation between hypothyroidism and diabetes. Recall that there was also some collinearity between asthma and diabetes. We can therefore expect that if we compute the partial correlation between hypothyroidism and diabetes conditioned on asthma, that asthma might account for a notable proportion of the r~*g*~ between hypothyroidism and asthma (which we determined to be .86, from the bivariate test earlier)
 
-```{r, eval=F}
+```{r, eval=T}
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
 ```
 
@@ -296,7 +296,7 @@ Indeed, here you see that the partial correlation has been almost halved, and is
 
 If we instead condition on rheuma
 
-```{r, eval=F}
+```{r, eval=T}
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
 ```
 
@@ -306,7 +306,7 @@ As seen previously, this phenotype was far less strongly genetically correlated 
 
 We can also condition on both asthma and rheuma (or any number of phenotypes) in one go:
 
-```{r, eval=F}
+```{r, eval=T}
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 ```
 
