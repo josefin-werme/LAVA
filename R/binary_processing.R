@@ -1,8 +1,5 @@
-
 ### Joint logistic model for input processing of binary phenotypes ###
-
 fit.logistic = function(G, X, R, N.orig, case.prop, snp.stat, snp.N=NULL, n.iter=25, svar.thresh=1.75, phen.id, loc.id, dropped=c()) {
-	#x n.iter=25; svar.thresh=1.75; N.orig=loc$N[i]; case.prop = input$info$prop_cases[i]; snp.stat=loc.sum[[i]]$STAT; snp.N=loc.sum[[i]]$N; phen.id=input$info$phenotype[i]; loc.id=loc$id; dropped=dropped
 	K = dim(G)[2]; K.block = dim(X)[2]; N.ref = dim(G)[1];
 	N1 = case.prop * N.orig; N.ratio = N.ref/N.orig
 	

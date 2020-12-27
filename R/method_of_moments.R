@@ -1,6 +1,5 @@
 #### METHOD OF MOMENTS 
 estimate.moments = function(delta, sigma, K, null.idx=0, null.omega=NULL, only.omega=F) {
-	#x delta=locus$delta; sigma=locus$sigma; K=locus$K; null.idx=0; only.omega=F
 	delta = as.matrix(delta)
 	P = ncol(delta)
 	
