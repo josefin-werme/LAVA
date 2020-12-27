@@ -54,18 +54,18 @@ univariate.test = function(locus, phenos=NULL) {
 
 #' Run univariate analysis
 #' 
-#' Performs univariate test to determine the presence of local genetic signal (i.e. the local heritability)
+#' Tests the univariate local genetic signal (i.e. the local heritability) for all phenotypes
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes will be analysed
+#' @param phenos Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes in the locus will be analysed
 #' @param var Set to T to return variance estimate
 #' 
 #' @return Data frame with the columns:
 #' \itemize{
 #'     \item phen - analysed phenotypes
 #'     \item var - local genetic variance
-#'     \item h2.obs - observed heritability
-#'     \item h2.latent - population heritability (only relevant for binary phenotypes; requires population prevalence to from input info file)
+#'     \item h2.obs - observed local heritability
+#'     \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in input info file)
 #'     \item p - p-values from the univariate test (F-test for continuous, Chi-sq for binary)
 #' }
 #' @export
@@ -282,7 +282,7 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.valu
 		out$ci.lower = ci[2]; out$ci.upper = ci[3]
 	}
 	
-	# if r2 is < max.r2, proceed with pvalues
+	# if r2 is < max.r2, proceed with p-values
 	if (all(out[c("r2.phen1_z","r2.phen2_z")] < max.r2) & p.values) {
 		out$p = integral.p(pcov.integral, K=locus$K, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos], adap.thresh=adap.thresh)
 	}

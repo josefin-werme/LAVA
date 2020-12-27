@@ -54,7 +54,7 @@ align = function(input) {
 		input$analysis.snps = input$analysis.snps[-unique(remove)]		# remove unalignable SNPs from reference data SNP list
 		for (i in 1:length(input$sum.stats)) {
 			input$sum.stats[[i]] = input$sum.stats[[i]][-unique(remove),]	# remove unalignable SNPs from sumstats
-			if (!all(input$analysis.snps == input$sum.stats[[i]]$SNP)) { print("DEV.ERROR: SNPs do not match after alignment"); stop() }	# TODO: check match with reference SNP list
+			if (!all(input$analysis.snps == input$sum.stats[[i]]$SNP)) { print("Program Error: SNPs do not match after alignment. Please contact developer"); stop() }
 		}
 		print(paste0("...Removing ",length(input$unalignable.snps)," SNPs which could not be aligned, ", length(input$analysis.snps)," remaining"))
 	}

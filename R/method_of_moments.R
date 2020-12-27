@@ -26,7 +26,6 @@ estimate.moments = function(delta, sigma, K, null.idx=0, null.omega=NULL, only.o
 	}
 }
 
-
-# separate this into a estimate.omega() function, and a estimate.params() function
+# TODO: separate this into a estimate.omega() function, and a estimate.params() function
 
 

@@ -1,7 +1,7 @@
 
 #' Process locus info
 #' 
-#' Takes a single locus and computes all the relevant parameters for this locus using the provided summary statistics and related info.
+#' Processes the summary statistics for all phenotypes within the specified locus and computes all parameters necessary for analysis.
 #' 
 #' @param loc Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')
 #' @param input Input object created with the \code{\link{process.input}} function, containing relevant summary statistics and related info (e.g. sample overlap, case/control ratio)
@@ -9,14 +9,15 @@
 #' @param prune.thresh PC pruning threshold governing the maximum number of PCs to retain.
 #' Selects PCs as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
 #' 
-#' @return This function returns an object containing general locus info, the relevant processed sumstats, and all info about the input phenotypes required for analysis
+#' @return Returns an environment containing general locus info, the processed sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
+#' If processing fails for specific phenotypes, only the successful phenotypes will be returned.
 #' 
 #' \itemize{
 #'     \item id - locus ID
-#'     \item chr/start/stop - locus coordinates
+#'     \item chr / start / stop - locus coordinates
 #'     \item snps - list of locus SNPs
-#'     \item n.snps - number of SNPs
-#'     \item K - number of PCs
+#'     \item n.snps - number of SNPs within locus
+#'     \item K - number of PCs retained
 #'     \item delta - PC projected joint SNP effects
 #'     \item sigma - sampling covariance matrix
 #'     \item omega - genetic covariance matrix
@@ -24,8 +25,8 @@
 #'     \item N - vector of average N across locus SNPs for each phenotype
 #'     \item phenos - phenotype IDs
 #'     \item binary - boolean vector indicating whether phentoypes are binary
-#'     \item h2.obs
-#'     \item h2.latent
+#'     \item h2.obs - observed local heritability
+#'     \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in input info file)
 #' }
 #' 
 #' @export
@@ -183,7 +184,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 
 
 
-# Input processing
+### Sum-stats readin ###
 
 format.pvalues = function(input, i) {
 	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),]		# remove NA pvalues
@@ -309,7 +310,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' 
 #' @param input.info.file Name of info file containing 
 #' phenotype IDs ('phenotype'), N cases ('cases'), N controls ('controls'), sumstats file ('filename').
-#' For continuous phenotypes, the number of controls should be set to 0.
+#' For continuous phenotypes, the number of controls should be set to 0, while cases can just  be set to 1 (this is only used for computing the case/control ratio, which should be 1 for continuous phenotypes).
 #'
 #' @param sample.overlap.file Name if file with sample overlap information.
 #' Can be set to NULL if there is no overlap
@@ -344,14 +345,13 @@ process.input = function(input.info.file, sample.overlap.file, ref.prefix, pheno
 	return(input)
 }
 
+
 #' Read in locus file
 #' 
 #' This function reads in the locus file, defining the locus boundaries using either coordinates (headers: 'CHR', 'START', 'STOP') and/or ';' separated SNP lists (header: 'SNPS').
 #' A locus ID column is also required (header: 'LOC').\cr
 #' \cr
 #' If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different GRChX version than the reference).\cr
-#' \cr
-#' If a SNP column is provided, please remove any columns with 0 SNPs in advance
 #' 
 #' @param loc.file Name of locus file
 #' 
