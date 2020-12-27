@@ -64,7 +64,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	N.ref = nrow(X)
 	
 	# check that order of SNPs match
-	if (!all(tolower(colnames(X))==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between reference data and analysis SNPs in locus", loc$id,". Please contact developer.")) }  # TODO: appropriate error;
+	if (!all(tolower(colnames(X))==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between reference data and analysis SNPs in locus", loc$id,". Please contact developer.")) } # this should never be triggered, but just in case
 	
 	# prune redundant PCs
 	svd = try(svd(X), silent=T)										# try svd
@@ -86,7 +86,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	for (i in 1:input$P) {
 		# subset sumstats to locus SNPs
 		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc$snps,]
-		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# TODO: appropriate error; this should never be triggered, but just in case
+		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# this should never be triggered, but just in case
 		# get N
 		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)											# get mean locus N (for sumstats i)
 		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }			# if all are NA, set to mean N across all SNPs in sumstats (20-09-23)
@@ -258,12 +258,12 @@ process.sumstats = function(input) {
 	if (length(input$analysis.snps) < 3) { stop("Less than 3 SNPs shared across data sets; make sure you have matching SNP ID formats across sumstats / reference data sets")
 	} else { print(paste("~",length(input$analysis.snps),"SNPs shared across data sets")) }
 	
-	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Development error: SNPs not ordered according to reference after subsetting") }	# TODO: how to keep this?
+	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
 	
 	# subset sumstats to common snps
 	for (i in 1:input$P) {
 		input$sum.stats[[i]] = input$sum.stats[[i]][match(input$analysis.snps, input$sum.stats[[i]]$SNP),]
-		if(!all(input$sum.stats[[i]]$SNP==input$analysis.snps)) { stop("DEV.ERROR: sum.stats SNPs do not match reference after subsetting") }	# TODO: appropriate error 
+		if(!all(input$sum.stats[[i]]$SNP==input$analysis.snps)) { stop("Program Error: sum-stats SNPs do not match the reference after subsetting. Please contact developer.") }
 	}
 	
 	# align SNPs
