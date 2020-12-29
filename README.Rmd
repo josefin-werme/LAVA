@@ -211,7 +211,7 @@ To perform a bivariate *r*~g~ analysis, testing the local *r*~g~ between pairs o
 run.bivar(locus)
 ```
 
-When multiple phenotypes are entered simultaneously, the last phenotype will be treated as the target phenotype, and separate bivariate tests will be performed between this phenotype and all others. (Note that this test is symmetric, the order of the phenotypes doesn't matter!).
+When multiple phenotypes are entered simultaneously, the last phenotype will be treated as the target phenotype, and separate bivariate tests will be performed between this phenotype and all others. (Note that this test is symmetric, the order of the phenotypes doesn't matter!). Since a simulation procedure is used to obtain the p-values and confidence intervals, when running the tutorial your output will differ slightly from that shown here (this applies to all tests except the univariate ones).
 
 You can subset and change the order of the phenotypes using the 'phenos' argument:
 
