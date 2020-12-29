@@ -184,7 +184,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 
 
 
-### Sum-stats readin ###
+### Sum-stats read-in ###
 
 format.pvalues = function(input, i) {
 	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),]		# remove NA pvalues
