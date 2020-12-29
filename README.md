@@ -7,13 +7,12 @@ This tutorial shows you how to read in and analyse data with LAVA
 (**L**ocal **A**nalysis of \[co\]**V**ariant **A**ssociation): A tool
 developed for local genetic correlation (*r*<sub>g</sub>) analysis.
 
-LAVA can analyse the local *r*<sub>g</sub> between two or more
-phenotypes, analyse both binary and continuous phenotypes, and account
-for known or estimated sample overlap. It can also test the univariate
-local genetic signal for all phenotypes of interest (i.e. the local
-*h*<sup>2</sup>), which may be used to filter out non-associated loci,
-and model the local genetic relations between multiple phenotypes using
-conditional models.
+LAVA can analyse the standard bivariate local *r*<sub>g</sub> between
+two phenotypes (binary as well as continuous), and account for known or
+estimated sample overlap. It can also test the univariate local genetic
+signal for all phenotypes of interest (i.e. the local *h*<sup>2</sup>),
+which may be used to filter out non-associated loci, and model the local
+genetic relations between multiple phenotypes using conditional models.
 
 The tutorial will show you how to install and run LAVA using some
 example input data. If you wish, you can inspect the data in the
@@ -44,10 +43,11 @@ LAVA can then be installed directly from github
 devtools::install_github("https://github.com/josefin-werme/lava.git")
 ```
 
-Or by downloading the code and installing it from a local directory
+Or by downloading the code (Download Zip under the Code button on
+GitHub), unzipping and installing from disk
 
 ``` r
-devtools::install("~/Programs/R/lava")      # adapt as necessary
+devtools::install("~/Programs/R/lava")      # specify local path here
 ```
 
 ``` r
@@ -66,7 +66,7 @@ directory*
 
     -   e.g. [1000 genomes](https://www.internationalgenome.org/data/),
         pre-processed input files can be found
-        [here](%5Bhttps://ctg.cncr.nl/software/magma)\](<https://ctg.cncr.nl/software/magma>))
+        [here](https://ctg.cncr.nl/software/magma)
 
 -   **Input info file**, used for convenient processing of multiple
     phenotypes. Requires the columns:
@@ -151,7 +151,7 @@ after processing. You can also check out the original data in the
 ‘vignettes/data’ folder.
 
 ``` r
-### Read in summarystatistics and related info
+### Read in summary statistics and related info
 input = process.input(input.info.file="vignettes/data/input.info.txt",           # input info file
                       sample.overlap.file="vignettes/data/sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
                       ref.prefix="vignettes/data/g1000_test",                    # reference genotype data prefix
@@ -282,18 +282,18 @@ proceed with the bivariate test!
 
 ## Analyse the bivariate local *r*<sub>g</sub> between two phenotypes
 
-To perform a bivariane *r*<sub>g</sub> analysis, testing the local
+To perform a bivariate *r*<sub>g</sub> analysis, testing the local
 *r*<sub>g</sub> between pairs of phenotypes, we simply pass the locus
 object the run.bivar() function
 
 ``` r
 run.bivar(locus)
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression   bmi 0.0723039  -0.18708   0.32633 0.00522785        0  0.10877
-#> 2      neuro   bmi 0.1069490  -0.09698   0.30797 0.01143810        0  0.09495
+#> 1 depression   bmi 0.0723039  -0.18184   0.32803 0.00522785        0  0.10952
+#> 2      neuro   bmi 0.1069490  -0.09535   0.31308 0.01143810        0  0.09802
 #>          p
-#> 1 0.566506
-#> 2 0.301328
+#> 1 0.568267
+#> 2 0.302147
 ```
 
 When multiple phenotypes are entered simultaneously, the last phenotype
@@ -307,11 +307,11 @@ argument:
 ``` r
 run.bivar(locus, phenos=c("neuro","bmi","depression"))
 #>   phen1      phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 neuro depression 0.5278610   0.26767   0.77906 0.27863700  0.07165  0.60694
-#> 2   bmi depression 0.0723039  -0.17562   0.32728 0.00522785  0.00000  0.10887
+#> 1 neuro depression 0.5278610   0.27190   0.77380 0.27863700  0.07393  0.59876
+#> 2   bmi depression 0.0723039  -0.18054   0.33094 0.00522785  0.00000  0.11168
 #>             p
-#> 1 0.000493229
-#> 2 0.567830000
+#> 1 0.000470121
+#> 2 0.568313000
 ```
 
 To filter automatically based on the univariate signal, you can also use
@@ -330,11 +330,11 @@ run.univ.bivar(locus)
 #> 
 #> $bivar
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression   bmi 0.0723039  -0.17828   0.32766 0.00522785        0  0.10977
-#> 2      neuro   bmi 0.1069490  -0.10010   0.31571 0.01143810        0  0.09967
+#> 1 depression   bmi 0.0723039  -0.18021   0.32172 0.00522785        0  0.10620
+#> 2      neuro   bmi 0.1069490  -0.09513   0.31254 0.01143810        0  0.09768
 #>          p
-#> 1 0.566549
-#> 2 0.300910
+#> 1 0.568034
+#> 2 0.301743
 
 # or with a custom p-value threshold
 run.univ.bivar(locus, univ.thresh = 1e-8)
@@ -345,8 +345,8 @@ run.univ.bivar(locus, univ.thresh = 1e-8)
 #> 3        bmi 0.000975242 6.60429e-32
 #> 
 #> $bivar
-#>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper       p
-#> 1 neuro   bmi 0.106949  -0.09424   0.31401 0.0114381        0   0.0986 0.30216
+#>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper        p
+#> 1 neuro   bmi 0.106949  -0.09783   0.31204 0.0114381        0  0.09739 0.299622
 ```
 
 If you would still like to print the bivariate output for unanalysed
@@ -363,10 +363,10 @@ run.univ.bivar(locus, univ.thresh=1e-8, return.unanalysed=T)
 #> $bivar
 #>        phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper
 #> 2 depression   bmi       NA        NA        NA        NA       NA       NA
-#> 1      neuro   bmi 0.106949  -0.09914   0.31233 0.0114381        0  0.09757
-#>         p
-#> 2      NA
-#> 1 0.30045
+#> 1      neuro   bmi 0.106949  -0.10091   0.30915 0.0114381        0  0.09573
+#>          p
+#> 2       NA
+#> 1 0.299331
 ```
 
 ## Apply the multivariate approaches to more than two phenotypes
@@ -419,13 +419,13 @@ run.univ.bivar(locus)
 #> 
 #> $bivar
 #>      phen1          phen2      rho rho.lower rho.upper       r2 r2.lower
-#> 1   asthma hypothyroidism 0.847161   0.77963   0.90896 0.717682  0.60782
-#> 2   rheuma hypothyroidism 0.525462   0.44003   0.61055 0.276111  0.19363
-#> 3 diabetes hypothyroidism 0.859903   0.77235   0.93955 0.739434  0.59652
+#> 1   asthma hypothyroidism 0.847161   0.77983   0.91039 0.717682  0.60814
+#> 2   rheuma hypothyroidism 0.525462   0.43592   0.61114 0.276111  0.19002
+#> 3 diabetes hypothyroidism 0.859903   0.77532   0.93783 0.739434  0.60112
 #>   r2.upper           p
-#> 1  0.82622 4.52800e-43
-#> 2  0.37278 1.31253e-24
-#> 3  0.88275 3.78709e-26
+#> 1  0.82881 5.30394e-44
+#> 2  0.37349 1.36778e-24
+#> 3  0.87953 2.44089e-26
 ```
 
 They do! We can then run the multiple regression for all predictors.
@@ -438,39 +438,39 @@ run.multireg(locus)
 #> [[1]]
 #> [[1]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism 0.8184750     0.70623     0.93617 0.719291  0.61112
-#> 2     rheuma hypothyroidism 0.0493099    -0.10402     0.18675 0.719291  0.61112
+#> 1     asthma hypothyroidism 0.8184750     0.70637     0.93968 0.719291  0.61302
+#> 2     rheuma hypothyroidism 0.0493099    -0.10360     0.18709 0.719291  0.61302
 #>   r2.upper           p
-#> 1  0.83195 9.31021e-24
-#> 2  0.83195 5.09806e-01
+#> 1  0.83384 2.36505e-24
+#> 2  0.83384 5.09632e-01
 #> 
 #> [[1]][[2]]
 #>   predictors        outcome    gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism 0.405003    -0.06887     0.76640 0.778212  0.67956
-#> 2   diabetes hypothyroidism 0.505998     0.12651     0.97871 0.778212  0.67956
+#> 1     asthma hypothyroidism 0.405003    -0.06460     0.77686 0.778212  0.67987
+#> 2   diabetes hypothyroidism 0.505998     0.11523     0.97120 0.778212  0.67987
 #>   r2.upper         p
-#> 1   0.8958 0.1033330
-#> 2   0.8958 0.0346502
+#> 1   0.8977 0.1007810
+#> 2   0.8977 0.0376475
 #> 
 #> [[1]][[3]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     rheuma hypothyroidism -0.195568    -0.50169     0.02574 0.757829  0.61422
-#> 2   diabetes hypothyroidism  1.000800     0.80859     1.26661 0.757829  0.61422
+#> 1     rheuma hypothyroidism -0.195568    -0.49553     0.02341 0.757829  0.61145
+#> 2   diabetes hypothyroidism  1.000800     0.80902     1.26438 0.757829  0.61145
 #>   r2.upper           p
-#> 1  0.92185 1.11112e-01
-#> 2  0.92185 8.49675e-10
+#> 1  0.92453 1.10862e-01
+#> 2  0.92453 7.46302e-10
 #> 
 #> 
 #> [[2]]
 #> [[2]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism  0.372955    -0.30357     0.75497 0.790052  0.69224
-#> 2     rheuma hypothyroidism -0.158500    -0.50281     0.04413 0.790052  0.69224
-#> 3   diabetes hypothyroidism  0.648194     0.16434     1.50002 0.790052  0.69224
+#> 1     asthma hypothyroidism  0.372955    -0.28570     0.75467 0.790052  0.69412
+#> 2     rheuma hypothyroidism -0.158500    -0.49279     0.04327 0.790052  0.69412
+#> 3   diabetes hypothyroidism  0.648194     0.15922     1.47867 0.790052  0.69412
 #>   r2.upper         p
-#> 1  0.93542 0.1884220
-#> 2  0.93542 0.1872890
-#> 3  0.93542 0.0546288
+#> 1  0.93699 0.1900620
+#> 2  0.93699 0.1871810
+#> 3  0.93699 0.0552472
 ```
 
 Here you see that, by default, this function does not only return the
@@ -503,13 +503,13 @@ run.multireg(locus, only.full.model=T)
 #> [[1]]
 #> [[1]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism  0.372955    -0.28383     0.76211 0.790052  0.69352
-#> 2     rheuma hypothyroidism -0.158500    -0.49385     0.04508 0.790052  0.69352
-#> 3   diabetes hypothyroidism  0.648194     0.16242     1.47409 0.790052  0.69352
-#>   r2.upper         p
-#> 1  0.93306 0.1858700
-#> 2  0.93306 0.1866880
-#> 3  0.93306 0.0563036
+#> 1     asthma hypothyroidism  0.372955    -0.31057     0.76190 0.790052  0.69566
+#> 2     rheuma hypothyroidism -0.158500    -0.50088     0.03993 0.790052  0.69566
+#> 3   diabetes hypothyroidism  0.648194     0.15641     1.51221 0.790052  0.69566
+#>   r2.upper        p
+#> 1  0.93989 0.189400
+#> 2  0.93989 0.187515
+#> 3  0.93989 0.054603
 ```
 
 ### Partial correlation
@@ -531,9 +531,9 @@ proportion of the r<sub>*g*</sub> between hypothyroidism and asthma
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'asthma'"
 #>            phen1    phen2      z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037   0.1133
-#>   ci.upper         p
-#> 1  0.76241 0.0143186
+#> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037  0.11501
+#>   ci.upper        p
+#> 1  0.76743 0.014454
 ```
 
 Indeed, here you see that the partial correlation has been almost
@@ -547,9 +547,9 @@ If we instead condition on rheuma
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'rheuma'"
 #>            phen1    phen2      z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.68132
+#> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.68372
 #>   ci.upper           p
-#> 1  0.94573 6.57496e-13
+#> 1  0.94515 3.76841e-13
 ```
 
 The partial correlation (.82) is now only slightly lower than the
@@ -567,9 +567,9 @@ phenotypes) in one go:
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'rheuma' + 'asthma'"
 #>            phen1    phen2             z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes rheuma;asthma   0.719291   0.831584 0.502074  0.12643
-#>   ci.upper        p
-#> 1  0.86768 0.015286
+#> 1 hypothyroidism diabetes rheuma;asthma   0.719291   0.831584 0.502074  0.13033
+#>   ci.upper         p
+#> 1  0.86595 0.0147188
 ```
 
 ------------------------------------------------------------------------
