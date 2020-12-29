@@ -18,7 +18,7 @@ fit.logistic = function(G, X, R, N.orig, case.prop, snp.stat, snp.N=NULL, n.iter
 			mu = 1 / (1+exp(-W%*%beta))
 			s = as.numeric(mu * (1-mu))
 			wsw.inv = try(solve(t(W) %*% diag(s) %*% W),silent=T)	# going to just assume this is invertible, but since cor(W) = I it would be very strange if it weren't
-			if (class(wsw.inv)[1]=="try-error") { print(paste0("DEV.ERROR: wsw inversion problem for phenotype ",phen.id,", locus ",loc.id)); return(NA) } # TODO: REMOVE
+			if (class(wsw.inv)[1]=="try-error") { print(paste0("Warning: multiple logistic regression model failed to converge for phenotype ",phen.id,", locus ",loc.id)); return(NA) } 
 			beta = beta + wsw.inv %*% (wty - t(W) %*% mu)
 		}
 		V = diag(wsw.inv)[-1]					# vector of sampling variances (excluding intercept)
