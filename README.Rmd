@@ -275,7 +275,7 @@ For example, in this case we can see that both asthma and diabetes are quite sig
 
 Had we not looked at the intermediate models beforehand, this pattern would have not been obvious. If we also didn't already know the bivariate correlations between the phenotypes, and only looked at the multivariate model, we might have made the erroneous conclusion that neither are relevant.
 
-**\>\>\> [ comment on model r2 ] \<\<\<**
+The output also provides the full model *r*^2^, which quantifies the joint association of all predictor phenotypes with the outcome. As shown here, although the collinearity between asthma and diabetes hides their individual association, the model as a whole is still highly predictive of hypothyroidism.
 
 If for some reason you only want to return the full model, however, you can speed up the analysis by setting the 'only.full.model' argument to TRUE
 
