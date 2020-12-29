@@ -9,7 +9,7 @@ process.input(input.info.file, sample.overlap.file, ref.prefix, phenos = NULL)
 \arguments{
 \item{input.info.file}{Name of info file containing 
 phenotype IDs ('phenotype'), N cases ('cases'), N controls ('controls'), sumstats file ('filename').
-For continuous phenotypes, the number of controls should be set to 0.}
+For continuous phenotypes, the number of controls should be set to 0, while cases can just  be set to 1 (this is only used for computing the case/control ratio, which should be 1 for continuous phenotypes).}
 
 \item{sample.overlap.file}{Name if file with sample overlap information.
 Can be set to NULL if there is no overlap}

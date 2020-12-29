@@ -2,7 +2,7 @@
 % Please edit documentation in R/analysis_functions.R
 \name{run.multireg}
 \alias{run.multireg}
-\title{Multiple local genetic regression analysis}
+\title{Local genetic multiple regression analysis}
 \usage{
 run.multireg(
   locus,
@@ -28,18 +28,19 @@ If set to NULL, the maximum number of permutations is capped at the default (Not
 
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
 
 #' @return Data frame with the columns:
 \itemize{
     \item pretictors / outcome - analysed phenotypes
     \item gamma - standardised multiple regression coefficient
     \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
-    \item r2 - proportion of variance in genetic signal for the outcome explained by all predictors simultaneously
+    \item r2 - proportion of variance in genetic signal for the outcome phenotype explained by all predictor phenotypes simultaneously
     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
     \item p - permutation p-values for the gammas
 }}
 }
 \description{
-Multiple local genetic regression analysis
+Will perform a local genetic multiple regression analysis, which models the genetic signal for a single outcome phenotype using two or more predictor phenotypes.
+Here, the genetic correlations between all predictors will be accounted for, and their genetic relation with the outcome will be conditioned on one another.
 }

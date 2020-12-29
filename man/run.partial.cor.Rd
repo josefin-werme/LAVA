@@ -2,7 +2,7 @@
 % Please edit documentation in R/analysis_functions.R
 \name{run.partial.cor}
 \alias{run.partial.cor}
-\title{Partial correlation analysis}
+\title{Local partial genetic correlation analysis}
 \usage{
 run.partial.cor(
   locus,
@@ -23,16 +23,18 @@ run.partial.cor(
 
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{max.r2}{Max r2 threshold for the regression of p1 ~ Z and p2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
+\item{max.r2}{Max r2 threshold for the regression of phen1 ~ Z and phen2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.}
+
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
 
 #' @return Data frame with the columns:
 \itemize{
     \item phen1 / phen2 - analysed phenotypes
-    \item rho - standardised coefficient for the local genetic correlation
+    \item rho - standardised coefficient for the partial genetic correlation
     \item rho.lower / rho.upper - 95\% confidence intervals for rho
-    \item r2 - proportion of variance in genetic signal for phen1 explained by phen2 (and vice versa)
+    \item r2 - proportion of partial variance in genetic signal for phen1 explained by phen2 (and vice versa)
     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
-    \item p - permutation p-values for the local genetic correlation
+    \item p - permutation p-values for the partial genetic correlation
 }}
 
 \item{adapt.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
@@ -40,6 +42,6 @@ Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 
 If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 }
 \description{
-Will perform the partial correlation between the first two phenotypes (p1,p2) conditioned on the rest (Z). 
-Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector to the 'phenos' argument.
+Will perform a local partial genetic correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
+Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order / phenotype subset to the 'phenos' argument.
 }

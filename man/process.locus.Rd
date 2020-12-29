@@ -17,14 +17,15 @@ Selects PCs as such that the cumulative proportion of variance explained is at l
 \item{loc}{Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')}
 }
 \value{
-This function returns an object containing general locus info, the relevant processed sumstats, and all info about the input phenotypes required for analysis
+Returns an environment containing general locus info, the processed sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
+If processing fails for specific phenotypes, only the successful phenotypes will be returned.
 
 \itemize{
     \item id - locus ID
-    \item chr/start/stop - locus coordinates
+    \item chr / start / stop - locus coordinates
     \item snps - list of locus SNPs
-    \item n.snps - number of SNPs
-    \item K - number of PCs
+    \item n.snps - number of SNPs within locus
+    \item K - number of PCs retained
     \item delta - PC projected joint SNP effects
     \item sigma - sampling covariance matrix
     \item omega - genetic covariance matrix
@@ -32,8 +33,10 @@ This function returns an object containing general locus info, the relevant proc
     \item N - vector of average N across locus SNPs for each phenotype
     \item phenos - phenotype IDs
     \item binary - boolean vector indicating whether phentoypes are binary
+    \item h2.obs - observed local heritability
+    \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in input info file)
 }
 }
 \description{
-Takes a single locus and computes all the relevant parameters for this locus using the provided summary statistics and related info.
+Processes the summary statistics for all phenotypes within the specified locus and computes all parameters necessary for analysis.
 }

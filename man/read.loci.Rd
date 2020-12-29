@@ -14,6 +14,4 @@ This function reads in the locus file, defining the locus boundaries using eithe
 A locus ID column is also required (header: 'LOC').\cr
 \cr
 If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different GRChX version than the reference).\cr
-\cr
-If a SNP column is provided, please remove any columns with 0 SNPs in advance
 }

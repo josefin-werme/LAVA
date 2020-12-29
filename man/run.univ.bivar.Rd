@@ -2,7 +2,7 @@
 % Please edit documentation in R/analysis_functions.R
 \name{run.univ.bivar}
 \alias{run.univ.bivar}
-\title{Perform univariate and bivariate analysis, with univariate filtering}
+\title{Perform both univariate and bivariate tests, with filtering based on univariate signal}
 \usage{
 run.univ.bivar(
   locus,
@@ -30,7 +30,7 @@ If set to NULL, the maximum number of permutations is capped at the default (Not
 
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)}
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA.}
 
 \item{return.unanalysed}{If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed
 Otherwise, only the analysed phenotypes will be returned (default).}
@@ -39,6 +39,6 @@ Otherwise, only the analysed phenotypes will be returned (default).}
 List containing the results from the univariate and bivariate tests (see ?run.univ() and ?run.bivar() for more info)
 }
 \description{
-Will only perform bivariate test for phenotypes that pass the univariate significance threshold.
-If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others
+Will only perform bivariate test for phenotypes that pass univariate significance.
+If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others.
 }

@@ -2,7 +2,7 @@
 
 #' Perform both univariate and bivariate tests, with filtering based on univariate signal
 #' 
-#' Will only perform bivariate test for phenotypes that pass univariate significance. 
+#' Will only perform bivariate test for phenotypes that pass univariate significance.
 #' If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
@@ -54,7 +54,7 @@ univariate.test = function(locus, phenos=NULL) {
 
 #' Run univariate analysis
 #' 
-#' Tests the univariate local genetic signal (i.e. the local heritability) for all phenotypes
+#' Tests the univariate local genetic signal (i.e. the local heritability) for all phenotypes.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes in the locus will be analysed
@@ -76,7 +76,7 @@ run.univ = function(locus, phenos=NULL, var=F) {
 	univ = data.frame(phen = phenos)
 	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
 	univ$h2.obs = signif(locus$h2.obs[phenos], 6)
-	if (any(locus$binary[phenos])) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
+	if (any(locus$binary[phenos]) & all(!is.na(locus$h2.latent))) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
 	univ$p = signif(univariate.test(locus, phenos), 6)
 	return(univ)
 }
@@ -85,9 +85,9 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #' Bivariate local genetic correlation analysis
 #' 
 #' Performs bivariate local genetic correlation analysis between two phenotypes.
-#' If more than one phenotype is specified, the last phenotype will be treated as the phenotype of interest, 
+#' If more than one phenotype is specified, the last phenotype will be treated as the target phenotype, 
 #' and separate bivariate tests will be performed between this phenotype and all others.
-#' Note: this test is symmetric, which phenotype is considered predictor/outcome doesn't matter.
+#' Note: this test is symmetric, which phenotype is considered the 'target' phenotype doesn't matter.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
@@ -147,10 +147,11 @@ run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, 
 
 
 
-#' Multiple local genetic regression analysis
+#' Local genetic multiple regression analysis
 #' 
-#' Model the genetic signal for a single outcome phenotype using two or more predictor phenotypes in a local multiple regression model. 
-#'  
+#' Will perform a local genetic multiple regression analysis, which models the genetic signal for a single outcome phenotype using two or more predictor phenotypes.
+#' Here, the genetic correlations between all predictors will be accounted for, and their genetic relation with the outcome will be conditioned on one another.
+#' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome
 #' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
@@ -229,10 +230,9 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 
 
 
-
-#' Partial correlation analysis
+#' Local partial genetic correlation analysis
 #' 
-#' Will perform the local partial genetic correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
+#' Will perform a local partial genetic correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
 #' Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order / phenotype subset to the 'phenos' argument.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest

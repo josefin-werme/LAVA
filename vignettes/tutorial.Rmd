@@ -71,11 +71,11 @@ library(lava)
 
     -   ***cases***: number of cases
 
-        -   set to 1 or the total sample size for continuous phenotypes
+        -   set to 1 for continuous phenotypes
 
     -   ***controls:*** number of controls
 
-        -   set to 0 for continuous phenotypes (important!); the case / control ratio is used to distinguish binary and continuous phenotypes, and is required for appropriate processing of binary sumstats.
+        -   set to 0 for continuous phenotypes (important!); the case / control ratio is used to distinguish binary and continuous phenotypes, and is required for appropriate processing of binary phenotypes.
 
     -   ***prevalence*** (optional): the population prevalence of binary phenotypes
 
@@ -107,7 +107,7 @@ library(lava)
 
     -   ***CHR, START, STOP***: coordinates
 
-    -   ***SNPS***: list of SNPS (optional)
+    -   ***SNPS***: list of SNPS. ';' separated (optional)
 
         -   note: if a SNP list is provided, coordinates will be ignored and the reference data will be subsetted based on SNP IDs instead. This can be convenient if the locus definition file is based on a different GRChX version than the reference data. If no SNP list is provided, the versions of reference and the locus file MUST match!
 

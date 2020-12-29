@@ -26,7 +26,7 @@ If set to NULL, the maximum number of permutations is capped at the default (Not
 
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds (and will be set to NA)}
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA.}
 }
 \value{
 Data frame with the columns:
@@ -40,8 +40,8 @@ Data frame with the columns:
 }
 }
 \description{
-Performs bivariate local genetic correlation analysis between two phenotypes for a single locus.
-If more than one phenotype is specified, the last phenotype will be treated as the phenotype of interest, 
+Performs bivariate local genetic correlation analysis between two phenotypes.
+If more than one phenotype is specified, the last phenotype will be treated as the target phenotype, 
 and separate bivariate tests will be performed between this phenotype and all others.
-Note: this test is symmetric, which phenotype is considered predictor/outcome doesn't matter.
+Note: this test is symmetric, which phenotype is considered the 'target' phenotype doesn't matter.
 }
