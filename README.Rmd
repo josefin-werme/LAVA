@@ -45,10 +45,10 @@ LAVA can then be installed directly from github
 devtools::install_github("https://github.com/josefin-werme/lava.git")
 ```
 
-Or by downloading the code and installing it from a local directory
+Or by downloading the code (Download Zip under the Code button on GitHub), unzipping and installing from disk
 
 ```{r, eval=F}
-devtools::install("~/Programs/R/lava")		# adapt as necessary
+devtools::install("~/Programs/R/lava")		# specify folder unzipped from archive here
 ```
 
 ```{r}
@@ -63,7 +63,7 @@ library(lava)
 
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
 
-    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/), pre-processed input files can be found [here](%5Bhttps://ctg.cncr.nl/software/magma)](<https://ctg.cncr.nl/software/magma>))
+    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/), pre-processed input files can be found [here](https://ctg.cncr.nl/software/magma)
 
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
@@ -120,7 +120,7 @@ library(lava)
 Run the script below to process the sample input files. If you wish, you can examine the input object to get an idea of what your data looks like after processing. You can also check out the original data in the 'vignettes/data' folder.
 
 ```{r, results='hide'}
-### Read in summarystatistics and related info
+### Read in summary statistics and related info
 input = process.input(input.info.file="vignettes/data/input.info.txt",           # input info file
                       sample.overlap.file="vignettes/data/sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
                       ref.prefix="vignettes/data/g1000_test",                    # reference genotype data prefix
@@ -205,7 +205,7 @@ we see that there is plenty of signal for all phenotypes, and we can proceed wit
 
 ## Analyse the bivariate local *r*~g~ between two phenotypes
 
-To perform a bivariane *r*~g~ analysis, testing the local *r*~g~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function
+To perform a bivariate *r*~g~ analysis, testing the local *r*~g~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function
 
 ```{r}
 run.bivar(locus)
