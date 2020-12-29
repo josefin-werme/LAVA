@@ -8,9 +8,9 @@
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
 #' @param univ.thresh P-value threshold for the univariate test, used to determine whether phenotypes exhibit sufficient local heritability for a bivariate test
-#' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
-#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
+#' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
 #' @param p.values Set to F to suppress p-values
 #' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
@@ -91,9 +91,9 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
-#' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
-#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
+#' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
 #' @param p.values Set to F to suppress p-values
 #' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
@@ -105,7 +105,7 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #'     \item rho.lower / rho.upper - 95\% confidence intervals for rho
 #'     \item r2 - proportion of variance in genetic signal for phen1 explained by phen2 (and vice versa)
 #'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
-#'     \item p - permutation p-values for the local genetic correlation
+#'     \item p - simulation p-values for the local genetic correlation
 #' }
 #' @export
 run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
@@ -154,21 +154,21 @@ run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, 
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome
-#' @param adap.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
-#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
+#' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
 #' @param p.values Set to F to suppress p-values
 #' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
 #' 
-#' #' @return Data frame with the columns:
+#' @return Data frame with the columns:
 #' \itemize{
 #'     \item pretictors / outcome - analysed phenotypes
 #'     \item gamma - standardised multiple regression coefficient
 #'     \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
 #'     \item r2 - proportion of variance in genetic signal for the outcome phenotype explained by all predictor phenotypes simultaneously
 #'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
-#'     \item p - permutation p-values for the gammas
+#'     \item p - simulation p-values for the gammas
 #' }
 #' @export
 run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) {
@@ -237,22 +237,22 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
 #' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the first two are p1 & p2 (the phenotypes of interest), the remaining are Z
-#' @param adapt.thresh The thresholds at which to increase the number of permutations for the p-value generation. 
-#' Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-#' If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
+#' @param adapt.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
+#' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+#' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
 #' @param p.values Set to F to suppress p-values
 #' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param max.r2 Max r2 threshold for the regression of phen1 ~ Z and phen2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
 #' 
-#' #' @return Data frame with the columns:
+#' @return Data frame with the columns:
 #' \itemize{
 #'     \item phen1 / phen2 - analysed phenotypes
 #'     \item rho - standardised coefficient for the partial genetic correlation
 #'     \item rho.lower / rho.upper - 95\% confidence intervals for rho
 #'     \item r2 - proportion of partial variance in genetic signal for phen1 explained by phen2 (and vice versa)
 #'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
-#'     \item p - permutation p-values for the partial genetic correlation
+#'     \item p - simulation p-values for the partial genetic correlation
 #' }
 #' @export
 run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
