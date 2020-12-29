@@ -48,7 +48,7 @@ devtools::install_github("https://github.com/josefin-werme/lava.git")
 Or by downloading the code (Download Zip under the Code button on GitHub), unzipping and installing from disk
 
 ```{r, eval=F}
-devtools::install("~/Programs/R/lava")		# specify folder unzipped from archive here
+devtools::install("~/Programs/R/lava")		# specify local path here
 ```
 
 ```{r}
