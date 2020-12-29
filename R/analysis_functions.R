@@ -242,16 +242,16 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
 #' @param p.values Set to F to suppress p-values
 #' @param CIs Set to F to suppress 95\% confidence intervals
-#' @param max.r2 Max r2 threshold for the regression of phen1 ~ Z and phen2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
+#' @param max.r2 Max r2 threshold for the regression of phen1~Z and phen2~Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
 #' 
 #' @return Data frame with the columns:
 #' \itemize{
-#'     \item phen1 / phen2 - analysed phenotypes
-#'     \item rho - standardised coefficient for the partial genetic correlation
-#'     \item rho.lower / rho.upper - 95\% confidence intervals for rho
-#'     \item r2 - proportion of partial variance in genetic signal for phen1 explained by phen2 (and vice versa)
-#'     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+#'     \item phen1 / phen2 - target phenotypes
+#'     \item z - phenotype(s) which the genetic correlation between the target phenotypes were conditioned on
+#'     \item r2.phen1_z / r2.phen2_z - the proportion of genetic signal in target phenotypes explained by z. Note: if either of these exceed the threshold specified by the max.r2 argument, the analysis will be aborted (to prevent unstable estimates)
+#'     \item pcor - the partial correlation between phen1 and phen2 conditioned on z
+#'     \item ci.lower / ci.upper - 95\% confidence intervals for the partial genetic correlation
 #'     \item p - simulation p-values for the partial genetic correlation
 #' }
 #' @export
