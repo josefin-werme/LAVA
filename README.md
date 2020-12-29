@@ -64,7 +64,7 @@ directory*
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used
     for the estimation of LD
 
-    -   e.g [1000 genomes](https://www.internationalgenome.org/data/)
+    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/), pre-processed input files can be found [here](https://ctg.cncr.nl/software/magma)
 
 -   **Input info file**, used for convenient processing of multiple
     phenotypes. Requires the columns:
@@ -119,7 +119,7 @@ directory*
         -   ***P***: p-values
 
 -   **Locus definition file**: File that defines loci either based on
-    genomic coordinates or a list of SNPs. Required headers:
+    genomic coordinates (i.e. basepair positions) or a list of SNPs. Required headers:
 
     -   ***LOC***: locus ID
 
@@ -127,7 +127,8 @@ directory*
 
     -   ***SNPS***: list of SNPS (optional)
 
-        -   note: if a SNP list is provided, coordinates will be ignored
+        -   note: SNP IDs in the list must be semi-colon separated, with no whitespace; 
+            if a SNP list is provided, coordinates will be ignored
             and the reference data will be subsetted based on SNP IDs
             instead. This can be convenient if the locus definition file
             is based on a different GRChX version than the reference
@@ -145,7 +146,7 @@ directory*
 Run the script below to process the sample input files. If you wish, you
 can examine the input object to get an idea of what your data looks like
 after processing. You can also check out the original data in the
-‘vingettes/data’ folder.
+‘vignettes/data’ folder.
 
 ``` r
 ### Read in summarystatistics and related info
