@@ -18,9 +18,9 @@ run.bivar(
 
 \item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest}
 
-\item{adap.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
-Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
+\item{adap.thresh}{The thresholds at which to increase the number of iterations for the p-value generation. 
+Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 
 \item{p.values}{Set to F to suppress p-values}
 
@@ -36,7 +36,7 @@ Data frame with the columns:
     \item rho.lower / rho.upper - 95\% confidence intervals for rho
     \item r2 - proportion of variance in genetic signal for phen1 explained by phen2 (and vice versa)
     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
-    \item p - permutation p-values for the local genetic correlation
+    \item p - simulation p-values for the local genetic correlation
 }
 }
 \description{

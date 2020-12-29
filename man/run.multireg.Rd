@@ -20,25 +20,26 @@ run.multireg(
 
 \item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome}
 
-\item{adap.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
-Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
+\item{adap.thresh}{The thresholds at which to increase the number of iterations for the p-value generation. 
+Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 
 \item{p.values}{Set to F to suppress p-values}
 
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
-
-#' @return Data frame with the columns:
+\item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA.}
+}
+\value{
+Data frame with the columns:
 \itemize{
     \item pretictors / outcome - analysed phenotypes
     \item gamma - standardised multiple regression coefficient
     \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
     \item r2 - proportion of variance in genetic signal for the outcome phenotype explained by all predictor phenotypes simultaneously
     \item r2.lower / r2.upper - 95\% confidence intervals for the r2
-    \item p - permutation p-values for the gammas
-}}
+    \item p - simulation p-values for the gammas
+}
 }
 \description{
 Will perform a local genetic multiple regression analysis, which models the genetic signal for a single outcome phenotype using two or more predictor phenotypes.

@@ -22,9 +22,9 @@ run.univ.bivar(
 
 \item{univ.thresh}{P-value threshold for the univariate test, used to determine whether phenotypes exhibit sufficient local heritability for a bivariate test}
 
-\item{adap.thresh}{The thresholds at which to increase the number of permutations for the p-value generation. 
-Default number of permutations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
-If set to NULL, the maximum number of permutations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
+\item{adap.thresh}{The thresholds at which to increase the number of iterations for the p-value generation. 
+Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
+If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)}
 
 \item{p.values}{Set to F to suppress p-values}
 
