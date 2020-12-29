@@ -182,7 +182,7 @@ locus$phenos							# locus phenotypes
 
 To determine the amount of local genetic signal for all phenotypes of interest, and filter out non-associated loci, we use the univariate test.
 
-After obtaining the locus object, we pass it directly to the run.univ() function in order to test the local heritability for all phenotypes (or a subset)
+After obtaining the locus object, we pass it directly to the **run.univ()** function in order to test the local heritability for all phenotypes (or a subset)
 
 ```{r}
 # for all phenotypes in the locus
@@ -205,7 +205,7 @@ we see that there is plenty of signal for all phenotypes, and we can proceed wit
 
 ## Analyse the bivariate local *r*~g~ between two phenotypes
 
-To perform a bivariate *r*~g~ analysis, testing the local *r*~g~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function
+To perform a bivariate *r*~g~ analysis, testing the local *r*~g~ between pairs of phenotypes, we simply pass the locus object the **run.bivar()** function
 
 ```{r}
 run.bivar(locus)
@@ -219,7 +219,7 @@ You can subset and change the order of the phenotypes using the 'phenos' argumen
 run.bivar(locus, phenos=c("neuro","bmi","depression"))
 ```
 
-To filter automatically based on the univariate signal, you can also use the run.univ.bivar() function to perform both tests, with the condition that the bivariate test is only performed for the phenotypes that reach the univariate significance:
+To filter automatically based on the univariate signal, you can also use the **run.univ.bivar()** function to perform both tests, with the condition that the bivariate test is only performed for the phenotypes that reach the univariate significance:
 
 ```{r}
 # with the default p-value threshold of .05
