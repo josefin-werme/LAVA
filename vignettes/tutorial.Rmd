@@ -75,7 +75,7 @@ library(lava)
 
     -   ***controls:*** number of controls
 
-        -   set to 0 for continuous phenotypes (important!); the case / control ratio is used to determine which phenotypes are binary / continuous).
+        -   set to 0 for continuous phenotypes (important!); the case / control ratio is used to distinguish binary and continuous phenotypes, and is required for appropriate processing of binary sumstats.
 
     -   ***prevalence*** (optional): the population prevalence of binary phenotypes
 
@@ -312,7 +312,7 @@ run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 
 ------------------------------------------------------------------------
 
-## Example analysis script for running bivariate r~*g*~ analysis across all genomic loci
+## Example analysis script for running bivariate *r*~g~ analysis across all genomic loci
 
 If you are interested in analysing the bivariate local *r*~g~'s between a large amount of phenotypes, we advice using a cluster computer. The example analysis script below shows how you might set up an R script that can be called from the command line, analysing the local *r*~g~'s across all loci in the locus file.
 
