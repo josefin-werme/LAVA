@@ -42,7 +42,7 @@ install.packages("devtools")
 LAVA can then be installed directly from github
 
 ```{r, eval=F}
-devtools::install_github("https://github.com/josefin-werme/lava.git")	# adapt as necessary
+devtools::install_github("https://github.com/josefin-werme/lava.git")
 ```
 
 Or by downloading the code and installing it from a local directory
@@ -63,7 +63,7 @@ library(lava)
 
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
 
-    -   e.g [1000 genomes](https://www.internationalgenome.org/data/)
+    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/), pre-processed input files can be found [here](%5Bhttps://ctg.cncr.nl/software/magma)](<https://ctg.cncr.nl/software/magma>))
 
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
@@ -105,9 +105,9 @@ library(lava)
 
     -   ***LOC***: locus ID
 
-    -   ***CHR, START, STOP***: coordinates
+    -   ***CHR, START, STOP***: coordinates (i.e. basepair positions)
 
-    -   ***SNPS***: list of SNPS. ';' separated (optional)
+    -   ***SNPS***: list of SNPS. ';' separated, no white-space (optional)
 
         -   note: if a SNP list is provided, coordinates will be ignored and the reference data will be subsetted based on SNP IDs instead. This can be convenient if the locus definition file is based on a different GRChX version than the reference data. If no SNP list is provided, the versions of reference and the locus file MUST match!
 
@@ -117,13 +117,13 @@ library(lava)
 
 ## Process input
 
-Run the script below to process the sample input files. If you wish, you can examine the input object to get an idea of what your data looks like after processing. You can also check out the original data in the 'vingettes/data' folder.
+Run the script below to process the sample input files. If you wish, you can examine the input object to get an idea of what your data looks like after processing. You can also check out the original data in the 'vignettes/data' folder.
 
 ```{r, results='hide'}
 ### Read in summarystatistics and related info
-input = process.input(input.info.file="data/input.info.txt",           # input info file
-                      sample.overlap.file="data/sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
-                      ref.prefix="data/g1000_test",                    # reference genotype data prefix
+input = process.input(input.info.file="vignettes/data/input.info.txt",           # input info file
+                      sample.overlap.file="vignettes/data/sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
+                      ref.prefix="vignettes/data/g1000_test",                    # reference genotype data prefix
                       phenos=c("depression","neuro","bmi"))       # subset of phenotypes listed in the input info file that we want to process
 
 # inspect the processed input data
@@ -145,7 +145,7 @@ Before analysing the genetic correlation at a locus, we need to convert the marg
 
 ```{r}
 ### Read in locus info file
-loci = read.loci("data/test.loci")
+loci = read.loci("vignettes/data/test.loci")
 head(loci)                          # inspect the locus file
 ?read.loci()                        # read more about the function and possible data formats
 
@@ -246,9 +246,9 @@ With the multiple regression option, you can model the genetic signal for an out
 For this analysis we will select a locus and a phenotype subset which has a bit more signal:
 
 ```{r}
-input = process.input(input.info.file="data/input.info.txt",
-                      sample.overlap.file="data/sample.overlap.txt",
-                      ref.prefix="data/g1000_test",
+input = process.input(input.info.file="vignettes/data/input.info.txt",
+                      sample.overlap.file="vignettes/data/sample.overlap.txt",
+                      ref.prefix="vignettes/data/g1000_test",
                       phenos=c("asthma","rheuma","diabetes","hypothyroidism"))
 
 locus = process.locus(loci[19,], input)
