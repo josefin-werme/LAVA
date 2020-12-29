@@ -129,6 +129,7 @@ input = process.input(input.info.file="vignettes/data/input.info.txt",          
 # inspect the processed input data
 ls(input)				      # this is actually an environment; hence ls() rather than str()
 ls(input$sum.stats)   # processed summary statistics
+head(input$sum.stats$bmi)
 input$info            # processed input info file, with additional variables N, prop_cases, binary computed by process.input()
 input$sample.overlap  # sample overlap file
 head(input$ref$bim)   # bim file from reference data
@@ -137,7 +138,7 @@ head(input$ref$bim)   # bim file from reference data
 ?process.input()
 ```
 
-**\>\> [ comment on the use of case control ratio to distinguish binary and continuous phentoypes ] \<\<**
+As you can see in the input\$info data frame, additional columns have been added to indicate whether phenotypes are binary, and what the the proportion of cases are for binary phenotypes (computed from the cases / controls columns). (NOTE: the N column here is not used for the analysis).
 
 ## Prepare a locus for analysis
 
