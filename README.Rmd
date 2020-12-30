@@ -138,7 +138,7 @@ head(input$ref$bim)   # bim file from reference data
 ?process.input()
 ```
 
-As you can see in the input\$info data frame, additional columns have been added to indicate whether phenotypes are binary, and what the the proportion of cases are for binary phenotypes (computed from the cases / controls columns). (NOTE: the N column here is not used for the analysis).
+As you can see in the input\$info data frame, additional columns have been added to indicate whether phenotypes are binary, and what the the proportion of cases are for binary phenotypes (computed from the cases / controls columns). *(NOTE: the N column here is not used for the analysis, that currently needs to be provided via the summary statistics).*
 
 ## Prepare a locus for analysis
 
