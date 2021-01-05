@@ -11,7 +11,7 @@ vignette: >
 
 This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
 
-LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci, and model the local genetic relations between multiple phenotypes using conditional models.
+LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci, and model the local genetic relations between multiple phenotypes using conditional models (for more details, see the [preprint](https://www.biorxiv.org/content/10.1101/2020.12.31.424652v1)).
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
