@@ -167,7 +167,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	# remove all phenotypes that failed (either due to negative variance, N < K, or wsw.inversion problem)
 	failed = neg.var | is.na(neg.var)	# those that failed due to N < K or wsw.inversion will be NA in the neg.var variable
 	if (any(failed)) {
-		if (all(failed)) { print(paste0("Error: All phenotypes in locus locus ",loc$id," failed (see preceeding warning messages for details)")); loc=NULL; return(NULL) }
+		if (all(failed)) { print(paste0("Error: Processing of all phenotypes in locus ",loc$id," failed (see preceeding warning messages for details)")); loc=NULL; return(NULL) }
 		
 		loc$delta = as.matrix(loc$delta[,!failed])	# delta
 		for (var in c("sigma","omega","omega.cor")) { loc[[var]] = as.matrix(loc[[var]][!failed,!failed]) } 		# symmetric matrices
