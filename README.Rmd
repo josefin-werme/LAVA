@@ -263,7 +263,9 @@ Say that we are interested in modelling hypothyroidism as the outcome. Lets firs
 run.univ.bivar(locus, target="hypothyroidism") 
 ```
 
-They do! We can then run the multiple regression for all predictors. With this function, the last phenotype will be treated as the outcome by default (order can be changed with the 'phenos' argument)
+They are! We can then run the multiple regression for all predictors.
+
+With this function, the last phenotype will be treated as the outcome by default (order can be changed with the 'phenos' argument)
 
 ```{r, eval=T}
 run.multireg(locus, adap.thresh=NULL) # We can set the adap.thresh argument to NULL for the sake of speeding up the analysis in this example, though note that this migh lead to some loss of accuracy for very low p-values, and we do not recommended doing this for a proper analysis (see function manual for more details)

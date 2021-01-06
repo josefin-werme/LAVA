@@ -1,10 +1,10 @@
 Package: lava
 Title: Local Analysis of [co]Variant Association
-Version: 0.0.5
+Version: 0.0.6
 Authors@R: person("Josefin", "Werme", email = "j.werme@vu.nl", role = c("aut", "cre"))
 Description: A tool for local genetic correlation analysis. 
 Depends: R (>= 3.5.1)
-License: What license is it under?
+License: All rights reserved
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1.9000
