@@ -5,9 +5,9 @@
 #' 
 #' @param loc Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')
 #' @param input Input object created with the \code{\link{process.input}} function, containing relevant summary statistics and related info (e.g. sample overlap, case/control ratio)
-#' @param min.K Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will return NA and the locus cannot be analysed.
+#' @param min.K Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will fail and the locus cannot be analysed.
 #' @param prune.thresh PC pruning threshold governing the maximum number of PCs to retain.
-#' Selects PCs as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
+#' PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
 #' 
 #' @return Returns an environment containing general locus info, the processed sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
 #' If processing fails for specific phenotypes, only the successful phenotypes will be returned.

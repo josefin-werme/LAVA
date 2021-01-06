@@ -9,10 +9,10 @@ process.locus(locus, input, min.K = 2, prune.thresh = 99)
 \arguments{
 \item{input}{Input object created with the \code{\link{process.input}} function, containing relevant summary statistics and related info (e.g. sample overlap, case/control ratio)}
 
-\item{min.K}{Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will return NA and the locus cannot be analysed.}
+\item{min.K}{Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will fail and the locus cannot be analysed.}
 
 \item{prune.thresh}{PC pruning threshold governing the maximum number of PCs to retain.
-Selects PCs as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).}
+PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).}
 
 \item{loc}{Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')}
 }
