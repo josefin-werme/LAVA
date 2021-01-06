@@ -93,11 +93,9 @@ library(lava)
 
     -   ***N / NMISS / N_analyzed***: number of samples
 
-    -   ***Z / T / STAT / Zscore***: if provided, no p-values or coefficients are needed; otherwise, please provide:
+    -   ***Z / T / STAT / Zscore***: if provided, no p-values or coefficients are needed; otherwise, please provide both:
 
         -   ***B / BETA / OR / logOdds***: effect size coefficients
-
-            -   please provide beta coefficients for continuous phenotypes, and odds ratios / log odds for binary phenotypes
 
         -   ***P***: p-values
 
