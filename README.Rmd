@@ -11,7 +11,7 @@ vignette: >
 
 This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
 
-LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci, and model the local genetic relations between multiple phenotypes using conditional models (for more details, see the [preprint](https://www.biorxiv.org/content/10.1101/2020.12.31.424652v1)).
+LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [preprint](https://www.biorxiv.org/content/10.1101/2020.12.31.424652v1)).
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
@@ -63,7 +63,7 @@ library(lava)
 
 -   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
 
-    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/), pre-processed input files can be found [here](https://ctg.cncr.nl/software/magma)
+    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/) (pre-processed input files can be found [here](https://ctg.cncr.nl/software/magma))
 
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
@@ -147,8 +147,8 @@ Before analysing the genetic correlation at a locus, we need to convert the marg
 ```{r}
 ### Read in locus info file
 loci = read.loci("vignettes/data/test.loci")
-head(loci)                          # inspect the locus file
-?read.loci()                        # read more about the function and possible data formats
+head(loci)  # inspect the locus file
+?read.loci  # read more about the function and possible data formats
 
 ### Create a locus object for the first locus to prepare it for analysis
 locus = process.locus(loci[1,], input)
@@ -166,8 +166,7 @@ If we inspect the locus object, we can see that it contains a lot of info about 
 
 -   The genetic covariance matrix $\Omega = t(\delta)'\delta / K-\sigma^2$ ('omega') with corresponding correlation matrix $\Omega^*$ ('omega.cor')
 
-```{r}
-
+```{r, eval=F}
 ls(locus)                               # inspect locus
 c(locus$chr, locus$start, locus$stop)   # locus coordinates
 str(locus$snps)                         # locus snps
@@ -176,14 +175,14 @@ locus$omega                             # genetic covariance matrix
 locus$omega.cor                         # standardised genetic covariance matrix
 locus$phenos							# locus phenotypes
 
-?process.locus()  # find our more details in the function documentation
+?process.locus  # find our more details in the function documentation
 ```
 
 ## Perform the univariate test
 
-To determine the amount of local genetic signal for all phenotypes of interest, and filter out non-associated loci, we use the univariate test.
+To determine the amount of local genetic signal for all phenotypes of interest and filter out non-associated loci, we use the univariate test.
 
-After obtaining the locus object, we pass it directly to the **run.univ()** function in order to test the local heritability for all phenotypes (or a subset)
+After obtaining the locus object, we pass it directly to the run.univ() function in order to test the heritability within that locus for all phenotypes (or a subset)
 
 ```{r}
 # for all phenotypes in the locus
@@ -193,7 +192,7 @@ run.univ(locus)
 run.univ(locus, phenos=c("depression","bmi"))
 ```
 
-As there was little evidence of any genetic signal for either phenotypes, there will be no point in testing the local *r*~g~ (and if we did, the estimates would be unreliable and uninterpretable)..
+As there was little evidence of any genetic signal for either phenotypes, there will be no point in testing the local *r*~g~ (if we did, the estimates would be unreliable and uninterpretable)..
 
 If we check another locus however:
 
@@ -204,23 +203,30 @@ run.univ(locus)
 
 we see that there is plenty of signal for all phenotypes, and we can proceed with the bivariate test!
 
-## Analyse the bivariate local *r*~g~ between two phenotypes
+## Analyse the bivariate local *r*~g~ between pairs of phenotypes
 
-To perform a bivariate *r*~g~ analysis, testing the local *r*~g~ between pairs of phenotypes, we simply pass the locus object the **run.bivar()** function
+To perform the bivariate test and obtain the local *r*~g~ between pairs of phenotypes, we simply pass the locus object the run.bivar() function
 
 ```{r}
 run.bivar(locus)
 ```
 
-When multiple phenotypes are entered simultaneously, the last phenotype will be treated as the target phenotype, and separate bivariate tests will be performed between this phenotype and all others. (Note that this test is symmetric, the order of the phenotypes doesn't matter!). Since a simulation procedure is used to obtain the p-values and confidence intervals, when running the tutorial your output will differ slightly from that shown here (this applies to all tests except the univariate ones).
-
-You can subset and change the order of the phenotypes using the 'phenos' argument:
+When multiple phenotypes are entered simultaneously, bivariate *r*~g~'s will be computed between all unique phenotype pairs by default. If you want to analyse only a subset of phenotypes, you can use the 'phenos' argument
 
 ```{r}
-run.bivar(locus, phenos=c("neuro","bmi","depression"))
+run.bivar(locus, phenos=c("neuro","depression"))
 ```
 
-To filter automatically based on the univariate signal, you can also use the **run.univ.bivar()** function to perform both tests, with the condition that the bivariate test is only performed for the phenotypes that reach the univariate significance:
+Additionally, should you only be interested in the *r*~g~'s between one target phenotype and all others, you can use the 'target' argument to prevent all pairwise tests from being computed and focus only on those relevant to the target
+
+```{r}
+run.bivar(locus, target="bmi")
+# ?run.bivar  # check the function description for more options
+```
+
+*[ Note that as we use a simulation procedure to obtain the p-values and confidence intervals here, the results might differ slightly between different runs ]*
+
+To **filter automatically based on the univariate signal**, you can also use the run.univ.bivar() function. This will perform both tests at once, with the condition that the bivariate test is only performed for the phenotypes that reach the desired univariate significance threshold
 
 ```{r}
 # with the default p-value threshold of .05
@@ -230,15 +236,11 @@ run.univ.bivar(locus)
 run.univ.bivar(locus, univ.thresh = 1e-8)
 ```
 
-If you would still like to print the bivariate output for unanalysed phentoypes, you can set the 'return.unanalysed' argument to TRUE.
+*[ You can also use the 'phenos' and 'target' arguments here to subset and specify target phenotypes ]*
 
-```{r}
-run.univ.bivar(locus, univ.thresh=1e-8, return.unanalysed=T)
-```
+## Analyse conditional genetic relations between several phenotypes
 
-## Apply the multivariate approaches to more than two phenotypes
-
-For loci in which you find significant correlations between more than two phenotypes, you might want to apply one of two possible multivariate approaches in order to compute conditional local genetic correlations within the locus
+For loci in which you find significant correlations between more than two phenotypes, you might want to apply one of two possible multivariate approaches in order to compute conditional local genetic relations within the locus
 
 ### Multiple regression
 
@@ -258,26 +260,30 @@ locus = process.locus(loci[19,], input)
 Say that we are interested in modelling hypothyroidism as the outcome. Lets first check that there is actually some local genetic signal for all phenotypes, and that all predictors are genetically correlated with the outcome within this locus
 
 ```{r}
-run.univ.bivar(locus)
+run.univ.bivar(locus, target="hypothyroidism") 
 ```
 
-They do! We can then run the multiple regression for all predictors.
-
-Here, the last phenotype will again be treated as the outcome
+They do! We can then run the multiple regression for all predictors. With this function, the last phenotype will be treated as the outcome by default (order can be changed with the 'phenos' argument)
 
 ```{r, eval=T}
-run.multireg(locus)
+run.multireg(locus, adap.thresh=NULL) # We can set the adap.thresh argument to NULL for the sake of speeding up the analysis in this example, though note that this migh lead to some loss of accuracy for very low p-values, and we do not recommended doing this for a proper analysis (see function manual for more details)
 ```
 
-Here you see that, by default, this function does not only return the full model with all predictors, but also all intermediate models. The reason for this is that when running a multiple regression it is important to be aware of how each predictor affects the fit of the other predictors in order to interpret the results correctly.
+By default, this function does not only return the full model with all predictors, but also all intermediate models. The reason for this is that it is important to be aware of how each predictor affects the fit of the other predictors in order to be able to interpret the results correctly.
 
-For example, in this case we can see that both asthma and diabetes are quite significant in the two-predictor models with rheuma, but not in the full model, or the two-predictor model with asthma and diabetes. This indicates that there is some collinearity between these predictors, which explains why neither appear very significant in the full model.
+For example, in this case we can see that both asthma and diabetes are quite significant in the two-predictor models with rheuma, but not in the full model, or the two-predictor model with asthma and diabetes together. This suggests that there is some collinearity between these predictors, which explains why neither appear very significant in the full model (despite both showing strong bivariate correlations with the hypothyroidism).
 
-Had we not looked at the intermediate models beforehand, this pattern would have not been obvious. If we also didn't already know the bivariate correlations between the phenotypes, and only looked at the multivariate model, we might have made the erroneous conclusion that neither are relevant.
+We can also look directly at the correlations between all predictors, which indeed confirms our suspicion
 
-The output also provides the full model *r*^2^, which quantifies the joint association of all predictor phenotypes with the outcome. As shown here, although the collinearity between asthma and diabetes hides their individual association, the model as a whole is still highly predictive of hypothyroidism.
+```{r}
+run.bivar(locus, phenos=c("asthma","rheuma","diabetes"))
+```
 
-If for some reason you only want to return the full model, however, you can speed up the analysis by setting the 'only.full.model' argument to TRUE
+Clues of this collinearity are also evident in the multivariate model *r*^2^'s, which show that the proportion of genetic signal for hypothyroidism that is explained by the predictors (jointly) is quite high in all cases, but changes little regardless of whether either asthma or diabetes (or both) are in the model, and is generally similar to their individual *r*^2^'s with hypothyroidism (which we determined with the bivariate previously).
+
+Had we not looked at these intermediate models beforehand (and also didn't already know the bivariate correlations between the phenotypes), this pattern would have not been obvious, and we might have made the erroneous conclusion that neither are relevant to hypothyroidism.
+
+For this reason, we strongly recommend examining the bivariate correlations and computing all intermediate conditional models when running this type of analysis. If for some reason you only want to return the full model, however, you do so by setting the 'only.full.model' argument to TRUE
 
 ```{r, eval=T}
 run.multireg(locus, only.full.model=T)

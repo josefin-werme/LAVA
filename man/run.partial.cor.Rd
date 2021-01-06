@@ -17,13 +17,13 @@ run.partial.cor(
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the first two are p1 & p2 (the phenotypes of interest), the remaining are Z}
+\item{phenos}{Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the first two will be treated as p1 & p2 (the target phenotypes), the remaining as Z (those that are conditioned on)}
 
 \item{p.values}{Set to F to suppress p-values}
 
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
-\item{max.r2}{Max r2 threshold for the regression of phen1 ~ Z and phen2 ~ Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.}
+\item{max.r2}{Max r2 threshold for the regression of phen1~Z and phen2~Z. If any of these r2's are too high, the partial correlation becomes unstable, and analysis is therefore aborted.}
 
 \item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA.}
 
@@ -34,15 +34,15 @@ If set to NULL, the maximum number of iterations is capped at the default (Note:
 \value{
 Data frame with the columns:
 \itemize{
-    \item phen1 / phen2 - analysed phenotypes
-    \item rho - standardised coefficient for the partial genetic correlation
-    \item rho.lower / rho.upper - 95\% confidence intervals for rho
-    \item r2 - proportion of partial variance in genetic signal for phen1 explained by phen2 (and vice versa)
-    \item r2.lower / r2.upper - 95\% confidence intervals for the r2
+    \item phen1 / phen2 - target phenotypes
+    \item z - phenotype(s) which the genetic correlation between the target phenotypes were conditioned on
+    \item r2.phen1_z / r2.phen2_z - the proportion of genetic signal in target phenotypes explained by z. Note: if either of these exceed the threshold specified by the max.r2 argument, the analysis will be aborted (to prevent unstable estimates)
+    \item pcor - the partial correlation between phen1 and phen2 conditioned on z
+    \item ci.lower / ci.upper - 95\% confidence intervals for the partial genetic correlation
     \item p - simulation p-values for the partial genetic correlation
 }
 }
 \description{
 Will perform a local partial genetic correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
-Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order / phenotype subset to the 'phenos' argument.
+Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order to the 'phenos' argument.
 }

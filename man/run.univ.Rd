@@ -9,7 +9,7 @@ run.univ(locus, phenos = NULL, var = F)
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes in the locus will be analysed}
+\item{phenos}{Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)}
 
 \item{var}{Set to T to return variance estimate}
 }

@@ -7,18 +7,21 @@
 run.univ.bivar(
   locus,
   phenos = NULL,
+  target = NULL,
   univ.thresh = 0.05,
   adap.thresh = c(1e-04, 1e-06),
   p.values = T,
   CIs = T,
-  param.lim = 1.25,
-  return.unanalysed = F
+  param.lim = 1.25
 )
 }
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest}
+\item{phenos}{Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)}
+
+\item{target}{Target phenotype of interest. If NULL, bivariate correlations between all pairs of phenotypes will be computed; 
+Otherwise, this will only be done between the target phenotype and all other phenotypes.}
 
 \item{univ.thresh}{P-value threshold for the univariate test, used to determine whether phenotypes exhibit sufficient local heritability for a bivariate test}
 
@@ -31,14 +34,11 @@ If set to NULL, the maximum number of iterations is capped at the default (Note:
 \item{CIs}{Set to F to suppress 95\% confidence intervals}
 
 \item{param.lim}{The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA.}
-
-\item{return.unanalysed}{If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed
-Otherwise, only the analysed phenotypes will be returned (default).}
 }
 \value{
 List containing the results from the univariate and bivariate tests (see ?run.univ() and ?run.bivar() for more info)
 }
 \description{
-Will only perform bivariate test for phenotypes that pass univariate significance.
-If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others.
+Will only perform bivariate test for all phenotypes that pass the univariate significance threshold. By default, the bivariate test will be performed for all combinations of phenotypes in the locus, 
+but this can be modified using the 'phenos' and 'target' arguments (see below)
 }

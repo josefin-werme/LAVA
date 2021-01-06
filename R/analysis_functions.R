@@ -2,11 +2,13 @@
 
 #' Perform both univariate and bivariate tests, with filtering based on univariate signal
 #' 
-#' Will only perform bivariate test for phenotypes that pass univariate significance.
-#' If more than two phenotypes are specified, the last will be treated as the target phenotype, and the bivariate test will be performed between this phenotype and all others.
+#' Will only perform bivariate test for all phenotypes that pass the univariate significance threshold. By default, the bivariate test will be performed for all combinations of phenotypes in the locus, 
+#' but this can be modified using the 'phenos' and 'target' arguments (see below)
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
+#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)
+#' @param target Target phenotype of interest. If NULL, bivariate correlations between all pairs of phenotypes will be computed; 
+#' Otherwise, this will only be done between the target phenotype and all other phenotypes.
 #' @param univ.thresh P-value threshold for the univariate test, used to determine whether phenotypes exhibit sufficient local heritability for a bivariate test
 #' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
@@ -14,25 +16,28 @@
 #' @param p.values Set to F to suppress p-values
 #' @param CIs Set to F to suppress 95\% confidence intervals
 #' @param param.lim The +- threshold at which estimated parameters are considered to be too far out of bounds. If the estimated parameter exceeds this threshold, it is considered unreliable and will be set to NA. 
-#' @param return.unanalysed If true, the bivariate results will contain all phenotypes, with NAs for those that weren't analysed
-#' Otherwise, only the analysed phenotypes will be returned (default).
 #' 
 #' @return List containing the results from the univariate and bivariate tests (see ?run.univ() and ?run.bivar() for more info)
 #' 
 #' @export
 #' 
-run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25, return.unanalysed=F) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) } }
+run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) }}
+	if (!is.null(target)) {
+		if (length(target) > 1) { print(paste0("Error: More than one target phenotype specified")); return(NA) }
+		if (! target %in% locus$phenos) { print(paste0("Error: Invalid target phenotype specified: '", target,"'")); return(NA) }
+		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
+	}
 	P = length(phenos)
 	
 	# univariate analysis
 	univ = run.univ(locus, phenos)
 	
 	# bivariate analysis
-	if (!return.unanalysed) bivar=NULL else bivar = data.frame(phen1 = phenos[-P], phen2 = phenos[P], rho=NA, rho.lower=NA, rho.upper=NA, r2=NA, r2.lower=NA, r2.upper=NA, p=NA)
-	if (any(univ$p[-P] < univ.thresh) & univ$p[P] < univ.thresh) { 
-		bivar = run.bivar(locus, phenos = phenos[which(univ$p < univ.thresh)], adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
-		if (return.unanalysed) { bivar = merge(data.frame(phen1 = phenos[-P]), bivar, all=T, sort=F); bivar = bivar[match(phenos[-P], bivar$phen1),]; bivar$phen2=phenos[P] }
+	pairs = t(combn(phenos,2))
+	if (any(univ$p < univ.thresh)) {
+		if (!is.null(target)) { if (subset(univ, phen==target)$p > univ.thresh) { break() } }	# if target is specified, only proceed if target is sig
+		bivar = run.bivar(locus, phenos = subset(univ, p < univ.thresh)$phen, target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
 	}
 	return(list(univ=univ, bivar=bivar))
 }
@@ -40,7 +45,7 @@ run.univ.bivar = function(locus, phenos=NULL, univ.thresh=.05, adap.thresh=c(1e-
 
 # Univariate p-values
 univariate.test = function(locus, phenos=NULL) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) } }
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) }}
 	P = length(phenos)
 	
 	p = rep(NA, P)
@@ -57,7 +62,7 @@ univariate.test = function(locus, phenos=NULL) {
 #' Tests the univariate local genetic signal (i.e. the local heritability) for all phenotypes.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Optional argument specifying subset of phenotypes to analyse. If NULL, all phenotypes in the locus will be analysed
+#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)
 #' @param var Set to T to return variance estimate
 #' 
 #' @return Data frame with the columns:
@@ -82,15 +87,18 @@ run.univ = function(locus, phenos=NULL, var=F) {
 }
 
 
+
+
 #' Bivariate local genetic correlation analysis
 #' 
 #' Performs bivariate local genetic correlation analysis between two phenotypes.
-#' If more than one phenotype is specified, the last phenotype will be treated as the target phenotype, 
-#' and separate bivariate tests will be performed between this phenotype and all others.
-#' Note: this test is symmetric, which phenotype is considered the 'target' phenotype doesn't matter.
+#' By default, the bivariate test will be performed for all combinations of phenotypes in the locus, 
+#' but this can be modified using the 'phenos' and 'target' arguments (see below)
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest
+#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)
+#' @param target Target phenotype of interest. If NULL, bivariate correlations between all pairs of phenotypes will be computed; 
+#' Otherwise, this will only be done between the target phenotype and all other phenotypes.
 #' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
@@ -108,33 +116,40 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #'     \item p - simulation p-values for the local genetic correlation
 #' }
 #' @export
-run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) } }
-	P = length(phenos); Px = P-1; Y = phenos[P]
+run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) }}
+	if (!is.null(target)) { 
+		if (length(target) > 1) { print(paste0("Error: More than one target phenotype specified")); return(NA) }
+		if (! target %in% locus$phenos) { print(paste0("Error: Invalid target phenotype specified: '", target,"'")); return(NA) }
+		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
+	}
+	P = length(phenos)
 	if (P < 2) { stop("Less than 2 phenotypes provided, cannot perform bivariate analysis") }
 	
+	if (is.null(target)) {
+		pairs = t(combn(phenos,2))	# all unique phenotype pairs
+	} else {
+		pairs = cbind(phenos[!phenos%in%target], target)
+	}
 	bivar = list(); params = c("gamma.std","r2"); ci.params = c("rho.lower","rho.upper","r2.lower","r2.upper")
-	bivar = data.frame(matrix(NA, Px, length(params)+7)); colnames(bivar) = c("phen1","phen2",params,ci.params,"p"); bivar$phen2 = phenos[P]
+	bivar = data.frame(matrix(NA, nrow(pairs), length(params)+7)); colnames(bivar) = c("phen1","phen2",params,ci.params,"p"); bivar[,c("phen1","phen2")] = pairs
 	
-	for (i in 1:Px) {
-		bivar$phen1[i] = phenos[i]
-		
-		# estimate params
-		mom = estimate.moments(delta=locus$delta[,c(phenos[i],Y)], sigma=locus$sigma[c(phenos[i],Y),c(phenos[i],Y)], K=locus$K)
+	for (i in 1:nrow(pairs)) {
+		mom = estimate.moments(delta = locus$delta[,pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], K = locus$K)  # estimate params
 		for (p in params) { bivar[[p]][i] = signif(mom[[p]], 6) } # store params
 		
 		# confidence intervals
 		if (CIs) {
-			ci = ci.bivariate(K = locus$K, omega = mom$omega, sigma = locus$sigma[c(phenos[i],Y),c(phenos[i],Y)])
+			ci = ci.bivariate(K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]])
 			bivar$rho.lower[i] = ci$ci.rho.low; bivar$rho.upper[i] = ci$ci.rho.high
 			bivar$r2.lower[i] = ci$ci.r2.low; bivar$r2.upper[i] = ci$ci.r2.high
 		}
 		# p-values
-		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K=locus$K, omega=mom$omega, sigma=locus$sigma[c(phenos[i],Y),c(phenos[i],Y)], adap.thresh=adap.thresh), 6) }
+		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], adap.thresh=adap.thresh), 6) }
 	}
 	# filter any estimates that are too far out of bounds
 	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param must be gamma/rho
-																									# params just needs to list all that will be set to NA if rho / gamma is too far out of bounds
+	# params just needs to list all that will be set to NA if rho / gamma is too far out of bounds
 	# cap out of bounds values (CI's are already capped)
 	for (p in params) { bivar[[p]] = cap(bivar[[p]], lim=c(ifelse(p=="r2", 0, -1), 1)) }	# capping rhos at -1/1, and r2s at 0/1
 	colnames(bivar)[which(colnames(bivar)=="gamma.std")] = "rho"
@@ -153,7 +168,7 @@ run.bivar = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, 
 #' Here, the genetic correlations between all predictors will be accounted for, and their genetic relation with the outcome will be conditioned on one another.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome
+#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the last phenotype will be treated as the outcome
 #' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
@@ -233,10 +248,10 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #' Local partial genetic correlation analysis
 #' 
 #' Will perform a local partial genetic correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
-#' Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order / phenotype subset to the 'phenos' argument.
+#' Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order to the 'phenos' argument.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the first two are p1 & p2 (the phenotypes of interest), the remaining are Z
+#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the first two will be treated as p1 & p2 (the target phenotypes), the remaining as Z (those that are conditioned on)
 #' @param adapt.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
@@ -269,9 +284,9 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.valu
 	r2 = data.frame(x = NA, y = NA)
 	for (i in 1:2) {
 		if (P == 3) {
-			r2[i] = run.bivar(locus, phenos[c(3:P,i)], p.values=F, CIs=F)$r2
+			r2[i] = run.bivar(locus, phenos[c(z,i)], p.values=F, CIs=F)$r2
 		} else {
-			r2[i] = run.multireg(locus, phenos[c(3:P,i)], only.full.model=T, p.values=F, CIs=F, suppress.message=T)[[1]][[1]]$r2[1]
+			r2[i] = run.multireg(locus, phenos[c(z,i)], only.full.model=T, p.values=F, CIs=F, suppress.message=T)[[1]][[1]]$r2[1]
 		}
 	}
 	out = data.frame(phen1=phenos[x], phen2=phenos[y], z=paste(phenos[z],collapse=";"), r2.phen1_z = r2$x, r2.phen2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
@@ -295,6 +310,8 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.valu
 	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
 	return(out)
 }
+
+
 
 
 # remove estimates that are excessively out of bounds

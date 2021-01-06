@@ -7,6 +7,7 @@
 run.bivar(
   locus,
   phenos = NULL,
+  target = NULL,
   adap.thresh = c(1e-04, 1e-06),
   p.values = T,
   CIs = T,
@@ -16,7 +17,10 @@ run.bivar(
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the phenotype of interest}
+\item{phenos}{Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)}
+
+\item{target}{Target phenotype of interest. If NULL, bivariate correlations between all pairs of phenotypes will be computed; 
+Otherwise, this will only be done between the target phenotype and all other phenotypes.}
 
 \item{adap.thresh}{The thresholds at which to increase the number of iterations for the p-value generation. 
 Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
@@ -41,7 +45,6 @@ Data frame with the columns:
 }
 \description{
 Performs bivariate local genetic correlation analysis between two phenotypes.
-If more than one phenotype is specified, the last phenotype will be treated as the target phenotype, 
-and separate bivariate tests will be performed between this phenotype and all others.
-Note: this test is symmetric, which phenotype is considered the 'target' phenotype doesn't matter.
+By default, the bivariate test will be performed for all combinations of phenotypes in the locus, 
+but this can be modified using the 'phenos' and 'target' arguments (see below)
 }

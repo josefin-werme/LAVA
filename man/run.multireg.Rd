@@ -18,7 +18,7 @@ run.multireg(
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Optional argument specifying subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order of the locus object). NOTE: the last phenotype will be treated as the outcome}
+\item{phenos}{Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the last phenotype will be treated as the outcome}
 
 \item{adap.thresh}{The thresholds at which to increase the number of iterations for the p-value generation. 
 Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
