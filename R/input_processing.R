@@ -68,9 +68,9 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	if (!all(tolower(colnames(X))==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between reference data and analysis SNPs in locus", loc$id,". Please contact developer.")) } # this should never be triggered, but just in case
 	
 	# prune redundant PCs
-	svd = try(svd(X), silent=T)										# try svd
+	svd = try(svd(X), silent=T)					# try svd
 	if (class(svd)=="try-error") { svd = try(svd(X), silent=T) } 	# if fails, try again (some randomness causing error occasionally)
-	if (class(svd)=="try-error") {									# if it fails again, do eig
+	if (class(svd)=="try-error") {					# if it fails again, do eig
 		eig = eigen(cor(X))
 		lambda = eig$values
 		Q = eig$vectors
@@ -89,9 +89,9 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc$snps,]
 		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# this should never be triggered, but just in case
 		# get N
-		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)											# get mean locus N (for sumstats i)
-		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }			# if all are NA, set to mean N across all SNPs in sumstats (20-09-23)
-		loc.sum[[i]]$N[is.na(loc.sum[[i]]$N)] = loc$N[i] 									# use mean imputation for missing N within locus sumstats
+		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)							# get mean locus N (for sumstats i)
+		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }			# if all are NA, set to mean N across all SNPs in sumstats
+		loc.sum[[i]]$N[is.na(loc.sum[[i]]$N)] = loc$N[i]						# use mean imputation for missing N within locus sumstats
 	}
 	
 	# Check remaining nr of PCs
