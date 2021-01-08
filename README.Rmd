@@ -353,17 +353,15 @@ for (i in 1:n.loc) {
         if (i %in% progress) print(paste("..",names(progress[which(progress==i)])))     # (printing progress)
         locus = process.locus(loci[i,], input)                                          # process locus
         
-        # It is possible that the locus cannot be defined for various reasons (e.g. too few SNPs, negative variance), so the !is.null(locus) check is necessary before calling the analysis functions.
-        # Note that it is also possible that individual phenotypes fail, in which case only the remaining phenotypes will be retured from the process.locus() function. 
-        # If you require all phenotypes to be analysed (as we do here), also include the all(phenos %in% locus$phenos) condition in the if statement as well
-        if (!is.null(locus) & all(phenos %in% locus$phenos)) {
+        # It is possible that the locus cannot be defined for various reasons (e.g. too few SNPs), so the !is.null(locus) check is necessary before calling the analysis functions.
+        if (!is.null(locus)) {
                 # extract some general locus info for the output
                 loc.info = data.frame(locus = locus$id, chr = locus$chr, start = locus$start, stop = locus$stop, n.snps = locus$n.snps, n.pcs = locus$K)
                 
                 # run the univariate and bivariate tests
                 loc.out = run.univ.bivar(locus, univ.thresh=1e-4)
                 u[[i]] = cbind(loc.info, loc.out$univ)
-                b[[i]] = cbind(loc.info, loc.out$bivar)
+                if(!is.null(out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
         }
 }
 
