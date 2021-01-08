@@ -32,7 +32,7 @@ run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap
 	univ = run.univ(locus, phenos)
 	
 	# bivariate analysis
-	bivar = NA
+	bivar = NULL
 	if (sum(univ$p < univ.thresh) > 1) {
 		if (!is.null(target)) { if (subset(univ, phen==target)$p > univ.thresh) { break() } }	# if target is specified, only proceed if target is sig
 		bivar = run.bivar(locus, phenos = subset(univ, p < univ.thresh)$phen, target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
@@ -307,8 +307,6 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.valu
 	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
 	return(out)
 }
-
-
 
 
 # remove estimates that are excessively out of bounds
