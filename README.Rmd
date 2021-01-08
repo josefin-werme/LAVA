@@ -51,7 +51,7 @@ Or by downloading the code (Download Zip under the Code button on GitHub), unzip
 devtools::install("~/Programs/R/lava")		# specify local path here
 ```
 
-```{r}
+```{r, message=F}
 library(lava)
 ```
 
