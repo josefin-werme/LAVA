@@ -28,8 +28,6 @@ run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap
 		if (! target %in% locus$phenos) { print(paste0("Error: Invalid target phenotype specified: '", target,"'")); return(NA) }
 		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
 	}
-	P = length(phenos)
-	
 	# univariate analysis
 	univ = run.univ(locus, phenos)
 	
@@ -76,7 +74,6 @@ univariate.test = function(locus, phenos=NULL) {
 #' @export
 run.univ = function(locus, phenos=NULL, var=F) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) } }
-	P = length(phenos)
 	
 	univ = data.frame(phen = phenos)
 	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
