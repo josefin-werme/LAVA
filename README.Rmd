@@ -337,7 +337,8 @@ Rscript "g1000_test" "test.loci" "input.info.file" "sample.overlap.file" "depres
 # command line arguments, specifying input/output file names and phenotype subset
 arg = commandArgs(T); ref.prefix = arg[1]; loc.file = arg[2]; info.file = arg[3]; sample.overlap.file = arg[4]; phenos = unlist(strsplit(arg[5],";")); out.fname = arg[6]
 
-library(data.table); library(lava); print(paste("Running LAVA version",packageVersion("lava")))
+### Load package
+library(lava)
 
 ### Read in data
 loci = read.loci(loc.file); n.loc = nrow(loci)
