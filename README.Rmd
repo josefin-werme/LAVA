@@ -361,7 +361,7 @@ for (i in 1:n.loc) {
                 # run the univariate and bivariate tests
                 loc.out = run.univ.bivar(locus, univ.thresh=1e-4)
                 u[[i]] = cbind(loc.info, loc.out$univ)
-                if(!is.null(out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
+                if(!is.null(loc.out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
         }
 }
 

@@ -278,13 +278,13 @@ run.bivar() function
 ``` r
 run.bivar(locus)
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression neuro 0.5278610   0.27213   0.77430 0.27863700  0.07405  0.59955
-#> 2 depression   bmi 0.0723039  -0.18631   0.32843 0.00522785  0.00000  0.11044
-#> 3      neuro   bmi 0.1069490  -0.09190   0.31174 0.01143810  0.00000  0.09718
+#> 1 depression neuro 0.5278610   0.27394   0.78031 0.27863700  0.07504  0.60888
+#> 2 depression   bmi 0.0723039  -0.18270   0.32772 0.00522785  0.00000  0.10956
+#> 3      neuro   bmi 0.1069490  -0.09711   0.31301 0.01143810  0.00000  0.09820
 #>             p
-#> 1 0.000528567
-#> 2 0.566284000
-#> 3 0.299211000
+#> 1 0.000502283
+#> 2 0.567621000
+#> 3 0.300836000
 ```
 
 When multiple phenotypes are entered simultaneously, bivariate
@@ -295,9 +295,9 @@ the ’phenos’ argument
 ``` r
 run.bivar(locus, phenos=c("neuro","depression"))
 #>   phen1      phen2      rho rho.lower rho.upper       r2 r2.lower r2.upper
-#> 1 neuro depression 0.527861   0.26808   0.77998 0.278637  0.07187  0.60838
+#> 1 neuro depression 0.527861   0.27603   0.77648 0.278637  0.07619  0.60293
 #>             p
-#> 1 0.000511562
+#> 1 0.000485853
 ```
 
 Additionally, should you only be interested in the *r*<sub>g</sub>‘s
@@ -308,11 +308,11 @@ only on those relevant to the target
 ``` r
 run.bivar(locus, target="bmi")
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression   bmi 0.0723039  -0.18167   0.33380 0.00522785        0   0.1132
-#> 2      neuro   bmi 0.1069490  -0.09742   0.31016 0.01143810        0   0.0962
+#> 1 depression   bmi 0.0723039  -0.18811   0.32174 0.00522785        0  0.10588
+#> 2      neuro   bmi 0.1069490  -0.09725   0.31273 0.01143810        0  0.09795
 #>          p
-#> 1 0.566634
-#> 2 0.300301
+#> 1 0.565684
+#> 2 0.301970
 # ?run.bivar  # check the function description for more options
 ```
 
@@ -336,13 +336,13 @@ run.univ.bivar(locus)
 #> 
 #> $bivar
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression neuro 0.5278610   0.26955   0.78055 0.27863700  0.07266  0.60926
-#> 2 depression   bmi 0.0723039  -0.17999   0.33110 0.00522785  0.00000  0.11074
-#> 3      neuro   bmi 0.1069490  -0.09666   0.31266 0.01143810  0.00000  0.09775
+#> 1 depression neuro 0.5278610   0.27516   0.77893 0.27863700  0.07571  0.60673
+#> 2 depression   bmi 0.0723039  -0.18733   0.32510 0.00522785  0.00000  0.10755
+#> 3      neuro   bmi 0.1069490  -0.09721   0.31441 0.01143810  0.00000  0.09885
 #>             p
-#> 1 0.000484682
-#> 2 0.567770000
-#> 3 0.299625000
+#> 1 0.000504686
+#> 2 0.565774000
+#> 3 0.303979000
 
 # or with a custom p-value threshold
 run.univ.bivar(locus, univ.thresh = 1e-8)
@@ -354,7 +354,7 @@ run.univ.bivar(locus, univ.thresh = 1e-8)
 #> 
 #> $bivar
 #>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper        p
-#> 1 neuro   bmi 0.106949  -0.09869   0.31468 0.0114381        0  0.09913 0.301026
+#> 1 neuro   bmi 0.106949  -0.09058   0.31889 0.0114381        0  0.10169 0.301688
 ```
 
 *\[ You can also use the ‘phenos’ and ‘target’ arguments here to subset
@@ -410,13 +410,13 @@ run.univ.bivar(locus, target="hypothyroidism")
 #> 
 #> $bivar
 #>      phen1          phen2      rho rho.lower rho.upper       r2 r2.lower
-#> 1   asthma hypothyroidism 0.847161   0.77787   0.91013 0.717682  0.60508
-#> 2   rheuma hypothyroidism 0.525462   0.43689   0.60877 0.276111  0.19087
-#> 3 diabetes hypothyroidism 0.859903   0.77179   0.93949 0.739434  0.59566
+#> 1   asthma hypothyroidism 0.847161   0.77659   0.91018 0.717682  0.60309
+#> 2   rheuma hypothyroidism 0.525462   0.43744   0.60737 0.276111  0.19136
+#> 3 diabetes hypothyroidism 0.859903   0.77335   0.93920 0.739434  0.59807
 #>   r2.upper           p
-#> 1  0.82834 1.62612e-39
-#> 2  0.37060 1.19793e-24
-#> 3  0.88265 1.34699e-26
+#> 1  0.82843 4.09981e-45
+#> 2  0.36890 1.29213e-24
+#> 3  0.88210 1.89228e-25
 ```
 
 They are! We can then run the multiple regression for all predictors.
@@ -430,39 +430,39 @@ run.multireg(locus, adap.thresh=NULL) # We can set the adap.thresh argument to N
 #> [[1]]
 #> [[1]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism 0.8184750     0.70642     0.93926 0.719291  0.61363
-#> 2     rheuma hypothyroidism 0.0493099    -0.10237     0.18658 0.719291  0.61363
+#> 1     asthma hypothyroidism 0.8184750     0.70381     0.94126 0.719291   0.6136
+#> 2     rheuma hypothyroidism 0.0493099    -0.10675     0.19171 0.719291   0.6136
 #>   r2.upper           p
-#> 1  0.83335 4.67122e-26
-#> 2  0.83335 5.08886e-01
+#> 1  0.83339 6.33993e-24
+#> 2  0.83339 5.09336e-01
 #> 
 #> [[1]][[2]]
 #>   predictors        outcome    gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism 0.405003    -0.08217     0.76987 0.778212  0.68138
-#> 2   diabetes hypothyroidism 0.505998     0.12091     0.98793 0.778212  0.68138
+#> 1     asthma hypothyroidism 0.405003    -0.07631     0.76953 0.778212  0.68283
+#> 2   diabetes hypothyroidism 0.505998     0.11995     0.98241 0.778212  0.68283
 #>   r2.upper         p
-#> 1  0.89836 0.1030520
-#> 2  0.89836 0.0362548
+#> 1  0.89727 0.1039200
+#> 2  0.89727 0.0376151
 #> 
 #> [[1]][[3]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     rheuma hypothyroidism -0.195568    -0.50427     0.02275 0.757829  0.60909
-#> 2   diabetes hypothyroidism  1.000800     0.80766     1.27547 0.757829  0.60909
+#> 1     rheuma hypothyroidism -0.195568    -0.50284     0.02426 0.757829  0.60818
+#> 2   diabetes hypothyroidism  1.000800     0.80113     1.27018 0.757829  0.60818
 #>   r2.upper           p
-#> 1  0.92739 1.07587e-01
-#> 2  0.92739 3.65894e-12
+#> 1  0.93001 1.12548e-01
+#> 2  0.93001 2.03808e-12
 #> 
 #> 
 #> [[2]]
 #> [[2]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism  0.372955    -0.31813     0.75522 0.790052  0.69452
-#> 2     rheuma hypothyroidism -0.158500    -0.50312     0.04619 0.790052  0.69452
-#> 3   diabetes hypothyroidism  0.648194     0.15331     1.49028 0.790052  0.69452
-#>   r2.upper        p
-#> 1  0.94052 0.187917
-#> 2  0.94052 0.183688
-#> 3  0.94052 0.053802
+#> 1     asthma hypothyroidism  0.372955    -0.31407     0.76345 0.790052  0.69434
+#> 2     rheuma hypothyroidism -0.158500    -0.50786     0.04452 0.790052  0.69434
+#> 3   diabetes hypothyroidism  0.648194     0.15998     1.51102 0.790052  0.69434
+#>   r2.upper         p
+#> 1  0.93588 0.1889980
+#> 2  0.93588 0.1876560
+#> 3  0.93588 0.0559055
 ```
 
 By default, this function does not only return the full model with all
@@ -485,13 +485,13 @@ which indeed confirms our suspicion
 ``` r
 run.bivar(locus, phenos=c("asthma","rheuma","diabetes"))
 #>    phen1    phen2      rho rho.lower rho.upper       r2 r2.lower r2.upper
-#> 1 asthma   rheuma 0.581756   0.51455   0.64571 0.338440  0.26476  0.41695
-#> 2 asthma diabetes 0.873835   0.79767   0.94236 0.763587  0.63627  0.88805
-#> 3 rheuma diabetes 0.720453   0.62928   0.80844 0.519053  0.39599  0.65358
+#> 1 asthma   rheuma 0.581756   0.51601   0.64475 0.338440  0.26627  0.41570
+#> 2 asthma diabetes 0.873835   0.79919   0.94282 0.763587  0.63870  0.88892
+#> 3 rheuma diabetes 0.720453   0.63190   0.80713 0.519053  0.39930  0.65146
 #>             p
-#> 1 5.22930e-46
-#> 2 2.63570e-30
-#> 3 2.88701e-29
+#> 1 1.24045e-46
+#> 2 2.68922e-31
+#> 3 2.85072e-29
 ```
 
 Clues of this collinearity are also evident in the multivariate model
@@ -519,13 +519,13 @@ run.multireg(locus, only.full.model=T)
 #> [[1]]
 #> [[1]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism  0.372955    -0.28044     0.75712 0.790052  0.69358
-#> 2     rheuma hypothyroidism -0.158500    -0.49327     0.04690 0.790052  0.69358
-#> 3   diabetes hypothyroidism  0.648194     0.14493     1.48367 0.790052  0.69358
+#> 1     asthma hypothyroidism  0.372955    -0.31258     0.75702 0.790052   0.6914
+#> 2     rheuma hypothyroidism -0.158500    -0.49925     0.04538 0.790052   0.6914
+#> 3   diabetes hypothyroidism  0.648194     0.15569     1.52003 0.790052   0.6914
 #>   r2.upper         p
-#> 1  0.93402 0.1914200
-#> 2  0.93402 0.1873940
-#> 3  0.93402 0.0549917
+#> 1  0.93569 0.1909840
+#> 2  0.93569 0.1877720
+#> 3  0.93569 0.0554024
 ```
 
 ### Partial correlation
@@ -547,9 +547,9 @@ proportion of the r<sub>*g*</sub> between hypothyroidism and asthma
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'asthma'"
 #>            phen1    phen2      z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037  0.11544
+#> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037  0.11456
 #>   ci.upper         p
-#> 1  0.75717 0.0148102
+#> 1   0.7674 0.0143628
 ```
 
 Indeed, here you see that the partial correlation has been almost
@@ -563,9 +563,9 @@ If we instead condition on rheuma
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'rheuma'"
 #>            phen1    phen2      z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.67919
+#> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.68126
 #>   ci.upper           p
-#> 1  0.94424 3.60971e-12
+#> 1  0.94583 5.33825e-13
 ```
 
 The partial correlation (.82) is now only slightly lower than the
@@ -583,9 +583,9 @@ phenotypes) in one go:
 run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'rheuma' + 'asthma'"
 #>            phen1    phen2             z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes rheuma;asthma   0.719291   0.831584 0.502074  0.12488
-#>   ci.upper        p
-#> 1  0.87437 0.015161
+#> 1 hypothyroidism diabetes rheuma;asthma   0.719291   0.831584 0.502074  0.12937
+#>   ci.upper         p
+#> 1   0.8692 0.0146603
 ```
 
 ------------------------------------------------------------------------
@@ -636,7 +636,7 @@ for (i in 1:n.loc) {
                 # run the univariate and bivariate tests
                 loc.out = run.univ.bivar(locus, univ.thresh=1e-4)
                 u[[i]] = cbind(loc.info, loc.out$univ)
-                if(!is.null(out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
+                if(!is.null(loc.out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
         }
 }
 
