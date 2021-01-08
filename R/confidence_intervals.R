@@ -9,7 +9,7 @@ ci.bivariate = function(K, omega, sigma, n.iter=10000) {
 	omega = S %*% corrs %*% S
 	
 	P = dim(omega)[1]; tri = lower.tri(corrs)
-	out = data.frame(pheno1=col(corrs)[tri], pheno2=row(corrs)[tri], r=corrs[tri])
+	out = data.frame(pheno1=col(corrs)[tri], pheno2=row(corrs)[tri], r=corrs[tri], ci.rho.low=NA, ci.rho.high=NA, ci.r2.low=NA, ci.r2.high=NA)
 	draws = tryCatch(matrixsampling::rwishart(n.iter, K, Sigma=sigma/K, Theta=omega), error=function(e){return(NULL)})
 	if (!is.null(draws)) {
 		if (P == 2) {
