@@ -9,7 +9,7 @@ ci.bivariate = function(K, omega, sigma, n.iter=10000) {
 	omega = S %*% corrs %*% S
 	
 	P = dim(omega)[1]; tri = lower.tri(corrs)
-	out = data.frame(pheno1=col(corrs)[tri], pheno2=row(corrs)[tri], r=corrs[tri], ci.rho.low=NA, ci.rho.high=NA, ci.r2.low=NA, ci.r2.high=NA)
+	out = data.frame(pheno1=col(corrs)[tri], pheno2=row(corrs)[tri], r=corrs[tri], rho.lower=NA, rho.upper=NA, r2.lower=NA, r2.upper=NA)
 	draws = tryCatch(matrixsampling::rwishart(n.iter, K, Sigma=sigma/K, Theta=omega), error=function(e){return(NULL)})
 	if (!is.null(draws)) {
 		if (P == 2) {
@@ -20,19 +20,18 @@ ci.bivariate = function(K, omega, sigma, n.iter=10000) {
 			r = suppressWarnings(apply(draws, 3, func, sigma))
 		}
 		# quantiles rho
-		qq = apply(r, 1, quantile, c(0.025, 0.975), na.rm=T)
+		qq = round(apply(r, 1, quantile, c(0.025, 0.975), na.rm=T),5)
 		qq[qq < -1] = -1; qq[qq > 1] = 1
-		out$ci.rho.low = qq[1,]
-		out$ci.rho.high = qq[2,]
+		out$rho.lower = qq[1,]; out$rho.upper = qq[2,]
 		
 		# quantiles r2
-		qq = apply(r^2, 1, quantile, c(0.025, 0.975), na.rm=T)
+		qq = round(apply(r^2, 1, quantile, c(0.025, 0.975), na.rm=T),5)
 		qq[qq < 0] = 0; qq[qq > 1] = 1
-		out$ci.r2.low = qq[1,]
-		out$ci.r2.high = qq[2,]
-		if (sign(out$ci.rho.low)!=sign(out$ci.rho.high)) out$ci.r2.low = 0  # set r2 lower to 0 if rho CI spans 0
+		out$r2.lower = qq[1,]; out$r2.upper = qq[2,]
+		if (sign(out$rho.lower)!=sign(out$rho.upper)) out$r2.lower = 0  # set r2 lower to 0 if rho CI spans 0
 	}
-	return(round(out,5))
+	
+	return(out)
 }
 
 

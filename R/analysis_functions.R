@@ -138,8 +138,7 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 		# confidence intervals
 		if (CIs) {
 			ci = ci.bivariate(K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]])
-			bivar$rho.lower[i] = ci$ci.rho.low; bivar$rho.upper[i] = ci$ci.rho.high
-			bivar$r2.lower[i] = ci$ci.r2.low; bivar$r2.upper[i] = ci$ci.r2.high
+			for (p in ci.params) { bivar[[p]][i] = ci[[p]] }
 		}
 		# p-values
 		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], adap.thresh=adap.thresh), 6) }
@@ -154,7 +153,6 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 	return.vars = c("phen1","phen2","rho","rho.lower","rho.upper","r2","r2.lower","r2.upper","p")
 	return(bivar[,return.vars])
 }
-
 
 
 
