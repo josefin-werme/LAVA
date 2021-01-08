@@ -124,7 +124,7 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
 	}
 	P = length(phenos)
-	if (P < 2) { print("Less than 2 phenotypes provided, cannot perform bivariate analysis"); return(NA) }
+	if (P < 2) { print(paste0("Error: Less than 2 phenotypes provided for bivariate analysis in locus: ",locus$id)); return(NA) }
 	
 	if (is.null(target)) {
 		pairs = t(combn(phenos,2))	# all unique phenotype pairs
@@ -189,7 +189,7 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) } }
 	P = length(phenos); Px = P-1; Y = phenos[P]
-	if (P < 3) { print(paste0("Only ",P," phenotypes provided for conditional analysis; Need at least 3")); return(NA) }
+	if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for multiple regression analysis in locus: ",locus$id)); return(NA) }
 	cond.idx = 1:Px
 	
 	if (!suppress.message) print(paste0("~ Running multiple regression for outcome '",Y,"', with predictors '",paste(phenos[1:Px],collapse="', '"),"'"))
@@ -272,7 +272,7 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #' @export
 run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NA) } }
-	P = length(phenos); if (P < 3) { print(paste0("Only ",P," phenotypes provided for partial correlation; need at least 3")); return(NA) }
+	P = length(phenos); if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)); return(NA) }
 	x = 1; y = 2; z = 3:P
 	
 	print(paste0("~ Running partial correlation for '",phenos[x],"' and '",phenos[y],"', conditioned on '",paste(phenos[z],collapse="' + '"),"'"))
