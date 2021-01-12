@@ -130,7 +130,6 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 	bivar = data.frame(matrix(NA, nrow(pairs), length(params)+7)); colnames(bivar) = c("phen1","phen2",params,ci.params,"p"); bivar[,c("phen1","phen2")] = pairs
 	
 	for (i in 1:nrow(pairs)) {
-		
 		est.params = estimate.params(locus, phenos=pairs[i,])	# estimate params
 		for (p in params) { bivar[[p]][i] = signif(est.params[[p]], 6) } # store
 		
@@ -199,18 +198,17 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			# check invertibility of omega.x
 			eig = eigen(locus$omega[mod.idx,mod.idx]); if (any(eig$values / (sum(eig$values)/Pm) < 1e-4)) { stop("omega.X not invertible") }; rm(eig)
 			
-			# est params and store
-			est.params = estimate.params(locus, phenos=c(mod.idx,Y))
-			
 			cond[[j]][[k]] = data.frame(matrix(NA, nrow = Pm, ncol = length(params)+7)); colnames(cond[[j]][[k]]) = c("predictors", "outcome", params, ci.params, "p")
 			cond[[j]][[k]]$predictors = mod.idx; cond[[j]][[k]]$outcome = Y
-			cond[[j]][[k]]$coef = signif(est.params$coef, 6); cond[[j]][[k]]$r2 = rep(signif(est.params$r2, 6), Pm)
+			
+			# est params and store
+			est.params = estimate.params(locus, phenos=c(mod.idx,Y))
+			for (p in params) { cond[[j]][[k]][[p]] = signif(est.params[[p]], 6) }
 			
 			# 95% confidence intervals
 			if (CIs) {
 				ci = ci.multivariate(K = locus$K, omega = locus$omega[c(mod.idx,Y),c(mod.idx,Y)], sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)])
-				cond[[j]][[k]]$gamma.lower = ci$gamma$ci.low; cond[[j]][[k]]$gamma.upper = ci$gamma$ci.high
-				cond[[j]][[k]]$r2.lower = ci$r2$ci.low; cond[[j]][[k]]$r2.upper = ci$r2$ci.high
+				for (p in ci.params) { cond[[j]][[k]][[p]] = ci[[p]] }
 			}
 			# p-values
 			if (p.values) {
@@ -223,8 +221,8 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			# cap r2 to 0 / 1 (CI's are already capped)
 			cond[[j]][[k]]$r2 = cap(cond[[j]][[k]]$r2, lim=c(0,1))
 			
-			cond[[j]][[k]] = cond[[j]][[k]][,c("predictors","outcome","coef","gamma.lower","gamma.upper","r2","r2.lower","r2.upper","p")]
 			colnames(cond[[j]][[k]])[which(colnames(cond[[j]][[k]])=="coef")] = "gamma"
+			cond[[j]][[k]] = cond[[j]][[k]][,c("predictors","outcome","gamma","gamma.lower","gamma.upper","r2","r2.lower","r2.upper","p")]
 		}
 	}
 	return(cond)
@@ -312,7 +310,7 @@ estimate.params = function(locus, phenos=NULL) {
 	tau.std = tau / locus$omega[y,y]
 	r2 = 1 - tau.std
 	
-	return(list(coef=coef.std, tau=tau.std, r2=r2))
+	return(data.frame(coef=coef.std, tau=tau.std, r2=r2))
 }
 
 

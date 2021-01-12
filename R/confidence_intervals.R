@@ -53,16 +53,13 @@ ci.multivariate = function(K, omega, sigma, n.iter=10000) {
 	draws = tryCatch(matrixsampling::rwishart(n.iter, K, Sigma=sigma/K, Theta=omega), error=function(e){return(NULL)}) 
 	if (!is.null(draws)) {
 		est = apply(draws, 3, estimate.std, sigma)  
-		qq = apply(est, 1, quantile, c(0.025, 0.975), na.rm=T)
+		qq = round(apply(est, 1, quantile, c(0.025, 0.975), na.rm=T), 5)
 	} else {
 		qq = matrix(NA, nrow=2, ncol=P)
 	}
 	qq.r2 = qq[,P]; qq.r2[qq.r2 < 0] = 0; qq.r2[qq.r2 > 1] = 1;
 	
-	ci = list(
-		gamma = round(data.frame(est=gamma.ss, ci.low=qq[1,-P], ci.high=qq[2,-P]),5), 
-		r2 = round(data.frame(est=r2, ci.low=qq.r2[1], ci.high=qq.r2[2]),5)
-	)
+	ci = suppressWarnings(data.frame(gamma=gamma.ss, gamma.lower=qq[1,-P], gamma.upper=qq[2,-P], r2=r2, r2.lower=qq.r2[1], r2.upper=qq.r2[2]))
 	return(ci)
 }
 
