@@ -84,8 +84,6 @@ run.univ = function(locus, phenos=NULL, var=F) {
 }
 
 
-
-
 #' Bivariate local genetic correlation analysis
 #' 
 #' Performs bivariate local genetic correlation analysis between two phenotypes.
@@ -128,12 +126,12 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 	} else {
 		pairs = cbind(phenos[!phenos%in%target], target)
 	}
-	bivar = list(); params = c("gamma.std","r2"); ci.params = c("rho.lower","rho.upper","r2.lower","r2.upper")
+	bivar = list(); params = c("coef","r2"); ci.params = c("rho.lower","rho.upper","r2.lower","r2.upper")
 	bivar = data.frame(matrix(NA, nrow(pairs), length(params)+7)); colnames(bivar) = c("phen1","phen2",params,ci.params,"p"); bivar[,c("phen1","phen2")] = pairs
 	
 	for (i in 1:nrow(pairs)) {
-		mom = estimate.moments(delta = locus$delta[,pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], K = locus$K)  # estimate params
-		for (p in params) { bivar[[p]][i] = signif(mom[[p]], 6) } # store params
+		est.params = estimate.params(locus, phenos=pairs[i,])	# estimate params
+		for (p in params) { bivar[[p]][i] = signif(est.params[[p]], 6) } # store
 		
 		# confidence intervals
 		if (CIs) {
@@ -144,17 +142,13 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], adap.thresh=adap.thresh), 6) }
 	}
 	# filter any estimates that are too far out of bounds
-	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param must be gamma/rho
-	# params just needs to list all that will be set to NA if rho / gamma is too far out of bounds
+	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param in data set must be gamma/rho; params argument just needs to list those that will be set to NA if rho is too far out of bounds
 	# cap out of bounds values (CI's are already capped)
 	for (p in params) { bivar[[p]] = cap(bivar[[p]], lim=c(ifelse(p=="r2", 0, -1), 1)) }	# capping rhos at -1/1, and r2s at 0/1
-	colnames(bivar)[which(colnames(bivar)=="gamma.std")] = "rho"
+	colnames(bivar)[which(colnames(bivar)=="coef")] = "rho"
 	
-	return.vars = c("phen1","phen2","rho","rho.lower","rho.upper","r2","r2.lower","r2.upper","p")
-	return(bivar[,return.vars])
+	return(bivar[,c("phen1","phen2","rho","rho.lower","rho.upper","r2","r2.lower","r2.upper","p")])
 }
-
-
 
 
 #' Local genetic multiple regression analysis
@@ -173,7 +167,7 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 #' 
 #' @return Data frame with the columns:
 #' \itemize{
-#'     \item pretictors / outcome - analysed phenotypes
+#'     \item predictors / outcome - analysed phenotypes
 #'     \item gamma - standardised multiple regression coefficient
 #'     \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
 #'     \item r2 - proportion of variance in genetic signal for the outcome phenotype explained by all predictor phenotypes simultaneously
@@ -193,8 +187,7 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 	models = list(); for (i in 2:length(cond.idx)) { models[[i-1]] = combn(phenos[1:Px], i) }		# get all unique predictor models
 	if (only.full.model) { m=list(); m[[1]] = models[[length(models)]]; models = m }
 	
-	params = c("gamma.std","r2")
-	ci.params = c("gamma.lower","gamma.upper","r2.lower","r2.upper")
+	params = c("coef","r2"); ci.params = c("gamma.lower","gamma.upper","r2.lower","r2.upper")
 	
 	for (j in 1:length(models)) {
 		cond[[j]] = list()
@@ -205,19 +198,17 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			# check invertibility of omega.x
 			eig = eigen(locus$omega[mod.idx,mod.idx]); if (any(eig$values / (sum(eig$values)/Pm) < 1e-4)) { stop("omega.X not invertible") }; rm(eig)
 			
-			# mom
-			mom = estimate.moments(delta = locus$delta[,c(mod.idx,Y)], sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)], K = locus$K)
-			
-			# store mom output
 			cond[[j]][[k]] = data.frame(matrix(NA, nrow = Pm, ncol = length(params)+7)); colnames(cond[[j]][[k]]) = c("predictors", "outcome", params, ci.params, "p")
 			cond[[j]][[k]]$predictors = mod.idx; cond[[j]][[k]]$outcome = Y
-			cond[[j]][[k]]$gamma.std = signif(mom$gamma.std, 6); cond[[j]][[k]]$r2 = rep(signif(mom$r2, 6), Pm)
+			
+			# est params and store
+			est.params = estimate.params(locus, phenos=c(mod.idx,Y))
+			for (p in params) { cond[[j]][[k]][[p]] = signif(est.params[[p]], 6) }
 			
 			# 95% confidence intervals
 			if (CIs) {
 				ci = ci.multivariate(K = locus$K, omega = locus$omega[c(mod.idx,Y),c(mod.idx,Y)], sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)])
-				cond[[j]][[k]]$gamma.lower = ci$gamma$ci.low; cond[[j]][[k]]$gamma.upper = ci$gamma$ci.high
-				cond[[j]][[k]]$r2.lower = ci$r2$ci.low; cond[[j]][[k]]$r2.upper = ci$r2$ci.high
+				for (p in ci.params) { cond[[j]][[k]][[p]] = ci[[p]] }
 			}
 			# p-values
 			if (p.values) {
@@ -230,14 +221,12 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 			# cap r2 to 0 / 1 (CI's are already capped)
 			cond[[j]][[k]]$r2 = cap(cond[[j]][[k]]$r2, lim=c(0,1))
 			
-			cond[[j]][[k]] = cond[[j]][[k]][,c("predictors","outcome","gamma.std","gamma.lower","gamma.upper","r2","r2.lower","r2.upper","p")]
-			colnames(cond[[j]][[k]])[which(colnames(cond[[j]][[k]])=="gamma.std")] = "gamma"
+			colnames(cond[[j]][[k]])[which(colnames(cond[[j]][[k]])=="coef")] = "gamma"
+			cond[[j]][[k]] = cond[[j]][[k]][,c("predictors","outcome","gamma","gamma.lower","gamma.upper","r2","r2.lower","r2.upper","p")]
 		}
 	}
 	return(cond)
 }
-
-
 
 
 #' Local partial genetic correlation analysis
@@ -304,6 +293,24 @@ run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.valu
 	
 	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
 	return(out)
+}
+
+
+# estimate coefficients using mom (for bivariate correlation and multiple regression)
+estimate.params = function(locus, phenos=NULL) {
+	if (is.null(phenos)) { phenos = locus$phenos }
+	P = length(phenos); x = phenos[1:(P-1)]; y = phenos[P]
+	
+	# estimate
+	coef = t(locus$omega[y,x] %*% solve(locus$omega[x,x])); names(coef) = x
+	tau = locus$omega[y,y] - locus$omega[y,x] %*% solve(locus$omega[x,x]) %*% locus$omega[x,y]
+	
+	# standardise
+	coef.std = NULL; for (p in x) { coef.std = c(coef.std, coef[p]*sqrt(locus$omega[p,p]/locus$omega[y,y])) }
+	tau.std = tau / locus$omega[y,y]
+	r2 = 1 - tau.std
+	
+	return(data.frame(coef=coef.std, tau=tau.std, r2=r2))
 }
 
 
