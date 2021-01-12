@@ -33,7 +33,7 @@ If set to NULL, the maximum number of iterations is capped at the default (Note:
 \value{
 Data frame with the columns:
 \itemize{
-    \item pretictors / outcome - analysed phenotypes
+    \item predictors / outcome - analysed phenotypes
     \item gamma - standardised multiple regression coefficient
     \item gamma.lower / gamma.upper - 95\% confidence intervals for gamma
     \item r2 - proportion of variance in genetic signal for the outcome phenotype explained by all predictor phenotypes simultaneously
