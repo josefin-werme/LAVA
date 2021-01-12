@@ -34,8 +34,9 @@ run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap
 	# bivariate analysis
 	bivar = NULL
 	if (sum(univ$p < univ.thresh) > 1) {
-		if (!is.null(target)) { if (subset(univ, phen==target)$p > univ.thresh) { break() } }	# if target is specified, only proceed if target is sig
-		bivar = run.bivar(locus, phenos = as.character(subset(univ, p < univ.thresh)$phen), target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
+		if (is.null(target) || subset(univ, phen==target)$p < univ.thresh) { 
+			bivar = run.bivar(locus, phenos = as.character(subset(univ, p < univ.thresh)$phen), target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
+		}
 	}
 	return(list(univ=univ, bivar=bivar))
 }
