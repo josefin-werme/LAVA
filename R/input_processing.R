@@ -156,7 +156,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	loc$h2.latent[loc$h2.latent<0] = 0
 	
 	# get full omega
-	loc$omega = estimate.moments(delta=loc$delta, sigma=loc$sigma, K=loc$K, only.omega=T)
+	loc$omega = t(loc$delta)%*%loc$delta / loc$K - loc$sigma
 	loc$omega.cor = suppressWarnings(cov2cor(loc$omega))
 	
 	# check if any phenos have negative sigma or omega
