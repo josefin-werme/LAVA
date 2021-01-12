@@ -42,7 +42,7 @@ install.packages("devtools")
 LAVA can then be installed directly from github
 
 ```{r, eval=F}
-devtools::install_github("https://github.com/josefin-werme/lava.git")
+devtools::install_git("https://github.com/josefin-werme/lava.git")
 ```
 
 Or by downloading the code (Download Zip under the Code button on GitHub), unzipping and installing from disk
