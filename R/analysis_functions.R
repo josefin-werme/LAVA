@@ -255,7 +255,7 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #'     \item p - simulation p-values for the partial genetic correlation
 #' }
 #' @export
-run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
+run.pcor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) } }
 	P = length(phenos); if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)); return(NULL) }
 	x = 1; y = 2; z = 3:P

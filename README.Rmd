@@ -296,7 +296,7 @@ In contrast with the multiple regression, the partial correlation allows you to 
 For this example, we will use the same locus and set of phenotypes as before. Lets say we are now interested in the partial correlation between hypothyroidism and diabetes. Recall that there was also some collinearity between asthma and diabetes. We can therefore expect that if we compute the partial correlation between hypothyroidism and diabetes conditioned on asthma, that asthma might account for a notable proportion of the r~*g*~ between hypothyroidism and asthma (which we determined to be .86, from the bivariate test earlier)
 
 ```{r, eval=T}
-run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
+run.pcor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
 ```
 
 Indeed, here you see that the partial correlation has been almost halved, and is no longer significant. The columns r2.phen1_z and r2.phen2_z confirm that asthma explains a substantial proportion of genetic variance for both hypothyroidism and diabetes.
@@ -304,7 +304,7 @@ Indeed, here you see that the partial correlation has been almost halved, and is
 If we instead condition on rheuma
 
 ```{r, eval=T}
-run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
+run.pcor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
 ```
 
 The partial correlation (.82) is now only slightly lower than the bivariate correlation (.86).
@@ -314,7 +314,7 @@ As seen previously, this phenotype was far less strongly genetically correlated 
 We can also condition on both asthma and rheuma (or any number of phenotypes) in one go:
 
 ```{r, eval=T}
-run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
+run.pcor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 ```
 
 ------------------------------------------------------------------------
