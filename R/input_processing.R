@@ -114,11 +114,11 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 		
 		for (i in 1:input$P) {
 			# check if N < K+50
-			if (loc$N[i] < loc$K + 50) { warning(paste0("N too small for phenotype '",loc$phenos[i],"' in locus ",loc$id)); next() }
+			if (loc$N[i] < loc$K + 50) { print(paste0("Warning: N too small for phenotype '",loc$phenos[i],"' in locus ",loc$id)); next() }
 			
 			if (input$info$binary[i]) {
 				fit = fit.logistic(G, X, R, loc$N[i], input$info$prop_cases[i], loc.sum[[i]]$STAT, loc.sum[[i]]$N, phen.id=input$info$phenotype[i], loc.id=loc$id, dropped=dropped)
-				if (is.na(fit[1])) { warning(paste0("Multiple logistic regression model for phenotype '",loc$phenos[i],"' in locus ",loc$id," failed to converge (inversion error)")); next() }
+				if (is.na(fit[1])) { print(paste0("Warning: Multiple logistic regression model for phenotype '",loc$phenos[i],"' in locus ",loc$id," failed to converge (inversion error)")); next() }
 				
 				# the fit$dropped vector contains IDs of all dropped PCs, including by other phenotypes (or by the same phenotype earlier), so checking here if it got longer
 				# if so, this will break out of the current for-loop and re-process all phenotypes with the new dropped vector
@@ -162,7 +162,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	# check if any phenos have negative sigma or omega
 	neg.var = diag(loc$sigma) < 0 | diag(loc$omega) < 0
 	if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id)); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
-	if (any(neg.var, na.rm=T)) { warning(paste0("Negative variance estimate for phenotype(s) '",paste(loc$phenos[which(neg.var)],collapse="', '"),"' in locus ",loc$id,"; Dropping these as they cannot be analysed")) }
+	if (any(neg.var, na.rm=T)) { print(paste0("Warning: Negative variance estimate for phenotype(s) '",paste(loc$phenos[which(neg.var)],collapse="', '"),"' in locus ",loc$id,"; Dropping these as they cannot be analysed")) }
 	
 	# remove all phenotypes that failed (either due to negative variance, N < K, or wsw.inversion problem)
 	failed = neg.var | is.na(neg.var)	# those that failed due to N < K or wsw.inversion will be NA in the neg.var variable
@@ -217,7 +217,7 @@ process.sumstats = function(input) {
 				if (sum(colnames(input$sum.stats[[i]]) %in% headers[[h]]) > 1) { # if so, remove all but the first valid column and print warning
 					col.remove = colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]][-1]
 					input$sum.stats[[i]] = input$sum.stats[[i]][,!colnames(input$sum.stats[[i]]) %in% col.remove]
-					warning(paste0("More than one valid ",h," header for phenotype: '",input$info$phenotype[i],"'. Only retainig the first ('",colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]],"')."))
+					print(paste0("Warning: More than one valid ",h," header for phenotype: '",input$info$phenotype[i],"'. Only retainig the first ('",colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]],"')."))
 				}
 				colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]] = h		# rename to standard header format
 			}
@@ -237,7 +237,7 @@ process.sumstats = function(input) {
 				# if so get the sign
 				if (param=="OR") { sign = ifelse(input$sum.stats[[i]][[param]] > 1, 1, -1) } else { sign = sign(input$sum.stats[[i]][[param]]) }
 			}
-			if (all(sign > 1)) { warning("The signs of betas/logOdds are positive; are you sure you did not provide ORs? (if so, please use the appropriate header)") }
+			if (all(sign > 1)) { print("Warning: The signs of betas/logOdds are positive; are you sure you did not provide ORs? (if so, please use the appropriate header)") }
 			
 			# get Z
 			Z = -qnorm(input$sum.stats[[i]]$P/2)
