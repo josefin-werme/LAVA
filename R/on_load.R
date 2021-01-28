@@ -1,3 +1,3 @@
 .onLoad = function(libname, pkgname) {
-	packageStartupMessage(paste0("Loading LAVA (v", packageVersion("lava"),")"))
+	packageStartupMessage(paste("Running LAVA version", packageVersion("LAVA")))
 }

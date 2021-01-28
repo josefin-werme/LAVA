@@ -1,4 +1,4 @@
-Package: lava
+Package: LAVA
 Title: Local Analysis of [co]Variant Association
 Version: 0.0.6
 Authors@R: person("Josefin", "Werme", email = "j.werme@vu.nl", role = c("aut", "cre"))
