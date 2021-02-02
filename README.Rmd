@@ -11,7 +11,7 @@ vignette: >
 
 This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
 
-LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [preprint](https://www.biorxiv.org/content/10.1101/2020.12.31.424652v1)).
+LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [preprint](https://doi.org/10.1101/2020.12.31.424652)).
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
@@ -85,13 +85,13 @@ library(LAVA)
 
 -   **Summary statistics** for all phenotypes of interest. To accommodate common summary statistics formats, a number of different column names are possible for the same column type (but **only ONE** header should be provided for each category; i.e do not provide a file that contains multiple valid SNP ID columns):
 
-    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID***: SNP IDs
+    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID / RSID_UKB***: SNP IDs
 
     -   ***A1 / ALT***: effect allele
 
     -   ***A2 / REF***: reference allele
 
-    -   ***N / NMISS / N_analyzed***: number of samples
+    -   ***N / NMISS / OBS_CT / N_analyzed***: number of samples
 
     -   ***Z / T / STAT / Zscore***: if provided, no p-values or coefficients are needed; otherwise, please provide both:
 
