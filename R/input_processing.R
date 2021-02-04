@@ -31,6 +31,9 @@
 #' 
 #' @export
 process.locus = function(locus, input, min.K=2, prune.thresh=99) { 
+	if (nrow(locus)!=1) { print("Error: Locus info provided incorrect number of loci. Please process only a signle locus at a time"); loc=NULL; return(NULL) }
+	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(locus)) | all(c("LOC","SNPS") %in% colnames(locus)))) { print("Locus info data frame is missing the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
+	
 	# define locus environment & add locus info
 	loc = new.env(parent=globalenv())
 	loc$id = locus$LOC; loc$chr = locus$CHR; loc$start = locus$START; loc$stop = locus$STOP; loc$snps = locus$SNPS
@@ -359,7 +362,7 @@ process.input = function(input.info.file, sample.overlap.file, ref.prefix, pheno
 read.loci = function(loc.file) {
 	check.files.exist(loc.file)
 	loci = data.table::fread(loc.file, data.table=F)
-	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(loci)) | all(c("LOC","SNPS") %in% colnames(loci)))) { stop("Locus file does not contain required headers") }
+	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(loci)) | all(c("LOC","SNPS") %in% colnames(loci)))) { stop("Locus file does not contain required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')") }
 	return(loci)
 }
 
