@@ -33,7 +33,7 @@
 process.locus = function(locus, input, min.K=2, prune.thresh=99) { 
 	if (nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a signle locus at a time"); loc=NULL; return(NULL) }
 	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(locus)) | all(c("LOC","SNPS") %in% colnames(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
-s	
+	
 	# define locus environment & add locus info
 	loc = new.env(parent=globalenv())
 	loc$id = locus$LOC; loc$chr = locus$CHR; loc$start = locus$START; loc$stop = locus$STOP; loc$snps = locus$SNPS
