@@ -34,8 +34,9 @@ run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap
 	# bivariate analysis
 	bivar = NULL
 	if (sum(univ$p < univ.thresh) > 1) {
-		if (!is.null(target)) { if (subset(univ, phen==target)$p > univ.thresh) { break() } }	# if target is specified, only proceed if target is sig
-		bivar = run.bivar(locus, phenos = as.character(subset(univ, p < univ.thresh)$phen), target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
+		if (is.null(target) || subset(univ, phen==target)$p < univ.thresh) { 
+			bivar = run.bivar(locus, phenos = as.character(subset(univ, p < univ.thresh)$phen), target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
+		}
 	}
 	return(list(univ=univ, bivar=bivar))
 }
@@ -78,7 +79,7 @@ run.univ = function(locus, phenos=NULL, var=F) {
 	univ = data.frame(phen = phenos)
 	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
 	univ$h2.obs = signif(locus$h2.obs[phenos], 6)
-	if (any(locus$binary[phenos]) & all(!is.na(locus$h2.latent))) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
+	if (any(locus$binary[phenos]) & any(!is.na(locus$h2.latent))) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
 	univ$p = signif(univariate.test(locus, phenos), 6)
 	return(univ)
 }
@@ -254,7 +255,7 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #'     \item p - simulation p-values for the partial genetic correlation
 #' }
 #' @export
-run.partial.cor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
+run.pcor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
 	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) } }
 	P = length(phenos); if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)); return(NULL) }
 	x = 1; y = 2; z = 3:P

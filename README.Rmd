@@ -11,7 +11,7 @@ vignette: >
 
 This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
 
-LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [preprint](https://www.biorxiv.org/content/10.1101/2020.12.31.424652v1)).
+LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [preprint](https://doi.org/10.1101/2020.12.31.424652)).
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
@@ -42,17 +42,17 @@ install.packages("devtools")
 LAVA can then be installed directly from github
 
 ```{r, eval=F}
-devtools::install_git("https://github.com/josefin-werme/lava.git")
+devtools::install_git("https://github.com/josefin-werme/LAVA.git")
 ```
 
 Or by downloading the code (Download Zip under the Code button on GitHub), unzipping and installing from disk
 
 ```{r, eval=F}
-devtools::install("~/Programs/R/lava")		# specify local path here
+devtools::install("~/Programs/R/LAVA")		# specify local path here
 ```
 
 ```{r, message=F}
-library(lava)
+library(LAVA)
 ```
 
 ## Input format
@@ -85,13 +85,13 @@ library(lava)
 
 -   **Summary statistics** for all phenotypes of interest. To accommodate common summary statistics formats, a number of different column names are possible for the same column type (but **only ONE** header should be provided for each category; i.e do not provide a file that contains multiple valid SNP ID columns):
 
-    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID***: SNP IDs
+    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID / RSID_UKB***: SNP IDs
 
     -   ***A1 / ALT***: effect allele
 
     -   ***A2 / REF***: reference allele
 
-    -   ***N / NMISS / N_analyzed***: number of samples
+    -   ***N / NMISS / OBS_CT / N_analyzed***: number of samples
 
     -   ***Z / T / STAT / Zscore***: if provided, no p-values or coefficients are needed; otherwise, please provide both:
 
@@ -296,7 +296,7 @@ In contrast with the multiple regression, the partial correlation allows you to 
 For this example, we will use the same locus and set of phenotypes as before. Lets say we are now interested in the partial correlation between hypothyroidism and diabetes. Recall that there was also some collinearity between asthma and diabetes. We can therefore expect that if we compute the partial correlation between hypothyroidism and diabetes conditioned on asthma, that asthma might account for a notable proportion of the r~*g*~ between hypothyroidism and asthma (which we determined to be .86, from the bivariate test earlier)
 
 ```{r, eval=T}
-run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
+run.pcor(locus, phenos=c("hypothyroidism","diabetes","asthma"))
 ```
 
 Indeed, here you see that the partial correlation has been almost halved, and is no longer significant. The columns r2.phen1_z and r2.phen2_z confirm that asthma explains a substantial proportion of genetic variance for both hypothyroidism and diabetes.
@@ -304,7 +304,7 @@ Indeed, here you see that the partial correlation has been almost halved, and is
 If we instead condition on rheuma
 
 ```{r, eval=T}
-run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
+run.pcor(locus, phenos=c("hypothyroidism","diabetes","rheuma"))
 ```
 
 The partial correlation (.82) is now only slightly lower than the bivariate correlation (.86).
@@ -314,7 +314,7 @@ As seen previously, this phenotype was far less strongly genetically correlated 
 We can also condition on both asthma and rheuma (or any number of phenotypes) in one go:
 
 ```{r, eval=T}
-run.partial.cor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
+run.pcor(locus, phenos=c("hypothyroidism","diabetes","rheuma","asthma"))
 ```
 
 ------------------------------------------------------------------------
