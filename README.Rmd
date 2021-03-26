@@ -99,7 +99,7 @@ library(LAVA)
 
         -   ***P***: p-values
 
--   **Locus definition file**: File that defines loci either based on genomic coordinates or a list of SNPs. Required headers:
+-   **Locus definition file**: File that defines loci either based on genomic coordinates or a list of SNPs (the locus file that we used in the LAVA preprint can be found in the support_data folder). Required headers:
 
     -   ***LOC***: locus ID
 
@@ -325,10 +325,10 @@ If you are interested in analysing the bivariate local *r*~g~'s between a large 
 
 #### Bash
 
-This is how you may call the R script from the command line
+This is how you may call the R script from the command line (note: file paths may need to be adapted depending on your set-up)
 
 ```{bash, eval=F}
-Rscript "g1000_test" "test.loci" "input.info.file" "sample.overlap.file" "depression;bmi" "depression.bmi"
+Rscript lava_script.R "g1000_test" "test.loci" "input.info.txt" "sample.overlap.txt" "depression;bmi" "depression.bmi"
 ```
 
 #### R script
@@ -338,7 +338,7 @@ Rscript "g1000_test" "test.loci" "input.info.file" "sample.overlap.file" "depres
 arg = commandArgs(T); ref.prefix = arg[1]; loc.file = arg[2]; info.file = arg[3]; sample.overlap.file = arg[4]; phenos = unlist(strsplit(arg[5],";")); out.fname = arg[6]
 
 ### Load package
-library(lava)
+library(LAVA)
 
 ### Read in data
 loci = read.loci(loc.file); n.loc = nrow(loci)
