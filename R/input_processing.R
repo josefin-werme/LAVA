@@ -1,10 +1,10 @@
-
 #' Process locus info
 #' 
 #' Processes the summary statistics for all phenotypes within the specified locus and computes all parameters necessary for analysis.
 #' 
 #' @param loc Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')
 #' @param input Input object created with the \code{\link{process.input}} function, containing relevant summary statistics and related info (e.g. sample overlap, case/control ratio)
+#' @param phenos Subset of phenotypes from the input object to process. If NULL (default), all phenotypes will be processed
 #' @param min.K Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will fail and the locus cannot be analysed.
 #' @param prune.thresh PC pruning threshold governing the maximum number of PCs to retain.
 #' PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
@@ -30,19 +30,28 @@
 #' }
 #' 
 #' @export
-process.locus = function(locus, input, min.K=2, prune.thresh=99) { 
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) { 
 	if (nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a signle locus at a time"); loc=NULL; return(NULL) }
 	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(locus)) | all(c("LOC","SNPS") %in% colnames(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
+	
+	min.K = max(min.K, 2) # just to make sure it isn't 1, because that leads to some matrix multiplication dimension issues
 	
 	# define locus environment & add locus info
 	loc = new.env(parent=globalenv())
 	loc$id = locus$LOC; loc$chr = locus$CHR; loc$start = locus$START; loc$stop = locus$STOP; loc$snps = locus$SNPS
 	
 	# add phenotype info
-	loc$binary = input$info$binary
-	loc$phenos = as.character(input$info$phenotype)
-	
-	min.K = max(min.K, 2) # just to make sure it isn't 1, because that leads to some matrix multiplication dimension issues
+	if (is.null(phenos)) { 
+		loc$phenos = as.character(input$info$phenotype) 
+	} else { 
+		if (any(! phenos %in% as.character(input$info$phenotype))) { 
+			print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% as.character(input$info$phenotype)]), collapse="', '"),"'"); loc=NULL; return(NULL) 
+		} else {
+			loc$phenos = phenos
+		}
+	}
+	loc$binary = input$info[match(loc$phenos, input$info$phenotype),]$binary; names(loc$binary) = loc$phenos
+	loc$P = length(loc$phenos)
 	
 	# get locus SNPs
 	if (!is.null(loc$snps)) {
@@ -55,7 +64,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	# subset to SNPs that passed input processing (i.e. exists across data sets + were aligned)
 	loc$snps = unique(intersect(input$analysis.snps, loc$snps))	# taking unique in case there are duplicates in loc$snps; using to intersect() to ensure order is same as reference data set
 	
-	# check that no SNPs > min.K
+	# check that no. SNPs > min.K
 	loc$n.snps = length(loc$snps)
 	if (loc$n.snps < min.K) { print(paste("Fewer than",min.K,"SNPs in locus",loc$id)); loc=NULL; return(NULL) }
 	
@@ -81,30 +90,29 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 		lambda = svd$d * svd$d / (N.ref-1)
 		Q = svd$v
 	}
-	# Retain PCs
 	cum.perc = cumsum(lambda / sum(lambda) * 100)
 	keep = 1:min(which(cum.perc >= prune.thresh))
-
-	# Subset sum-stats and get locus N
-	loc.sum = list(); loc$N = rep(NA, input$P)
-	for (i in 1:input$P) {
-		# subset sumstats to locus SNPs
-		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc$snps,]
-		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# this should never be triggered, but just in case
-		# get N
-		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)							# get mean locus N (for sumstats i)
-		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }			# if all are NA, set to mean N across all SNPs in sumstats
-		loc.sum[[i]]$N[is.na(loc.sum[[i]]$N)] = loc$N[i]						# use mean imputation for missing N within locus sumstats
-	}
 	
 	# Check remaining nr of PCs
 	K.max = length(keep) # K renamed to K.max after updating the fit.logistic() function; K is defined within while loop
 	if (K.max < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
 	
+	# Subset sum-stats and get locus N
+	loc.sum = list(); loc$N = rep(NA, loc$P); names(loc$N) = loc$phenos
+	for (i in loc$phenos) {
+		# subset sumstats to locus SNPs
+		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc$snps,]
+		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# this should never be triggered, but just in case
+		# get N
+		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)	# get mean locus N (for sumstats i)
+		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }	# if all are NA, set to mean N across all SNPs in sumstats
+		loc.sum[[i]]$N[is.na(loc.sum[[i]]$N)] = loc$N[i]	# use mean imputation any for missing per SNP N 
+	}
+	
 	# Define G/R for binary phenotypes (used by fit.logistic())
 	if (any(loc$binary)) { R = Q[,keep] %*% diag(1/sqrt(lambda[keep])); G = X %*% R } # NOTE: these are further subsetted within the fit.logistic() function if any PCs are dropped, so there is no need to subset again in the while loop
 	
-	loc$sigma = loc$h2.obs = loc$h2.latent = rep(NA, input$P)
+	loc$sigma = loc$h2.obs = loc$h2.latent = rep(NA, loc$P); names(loc$sigma) = names(loc$h2.obs) = names(loc$h2.latent) = loc$phenos
 	dropped = c()	# any PCs that might be dropped by fit.logistic() due to instability
 	
 	while (T) {
@@ -112,16 +120,16 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 		loc$K = length(keep)
 		if (loc$K < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
 		
-		loc$delta = matrix(NA, loc$K, input$P); # this needs to be defined in here so it updates to right size if further PCs dropped
+		loc$delta = matrix(NA, loc$K, loc$P); colnames(loc$delta) = loc$phenos # this needs to be defined in here so it updates to right size if further PCs dropped
 		rerun = F # will be set to true in case additional PCs dropped during 1:P loop by fit.logistic
 		
-		for (i in 1:input$P) {
+		for (i in loc$phenos) {
 			# check if N < K+50
 			if (loc$N[i] < loc$K + 50) { print(paste0("Warning: N too small for phenotype '",loc$phenos[i],"' in locus ",loc$id)); next() }
 			
-			if (input$info$binary[i]) {
-				fit = fit.logistic(G, X, R, loc$N[i], input$info$prop_cases[i], loc.sum[[i]]$STAT, loc.sum[[i]]$N, phen.id=input$info$phenotype[i], loc.id=loc$id, dropped=dropped)
-				if (is.na(fit[1])) { print(paste0("Warning: Multiple logistic regression model for phenotype '",loc$phenos[i],"' in locus ",loc$id," failed to converge (inversion error)")); next() }
+			if (loc$binary[i]) {
+				fit = fit.logistic(G, X, R, loc$N[i], subset(input$info,phenotype==i)$prop_cases, loc.sum[[i]]$STAT, loc.sum[[i]]$N, phen.id=i, loc.id=loc$id, dropped=dropped)
+				if (is.na(fit[1])) { warning(paste0("Multiple logistic regression model for phenotype '",i,"' in locus ",loc$id," failed to converge (inversion error)")); next() }
 				
 				# the fit$dropped vector contains IDs of all dropped PCs, including by other phenotypes (or by the same phenotype earlier), so checking here if it got longer
 				# if so, this will break out of the current for-loop and re-process all phenotypes with the new dropped vector
@@ -135,7 +143,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 				
 				# compute h2 if pop prevalence info is provided
 				if (!is.null(input$info$prevalence)) {
-					loc$h2.latent[i] = fit$h2.obs * (input$info$prevalence[i] * (1-input$info$prevalence[i]) / dnorm(qnorm(input$info$prevalence[i]))^2)
+					loc$h2.latent[i] = fit$h2.obs * (subset(input$info,phenotype==i)$prevalence * (1-subset(input$info,phenotype==i)$prevalence) / dnorm(qnorm(subset(input$info,phenotype==i)$prevalence))^2)
 				}
 			} else {
 				r = loc.sum[[i]]$STAT / sqrt(loc.sum[[i]]$STAT^2 + loc.sum[[i]]$N - 2)	# for continuous phenos, convert Z to r
@@ -151,10 +159,10 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 		}
 		if (!rerun) break # end while loop
 	}
-	if (input$P > 1) { loc$sigma = diag(loc$sigma) }; if (!is.null(input$sample.overlap)) { loc$sigma = sqrt(loc$sigma) %*% as.matrix(input$sample.overlap) %*% sqrt(loc$sigma) } # if P > 1 is just because the diag() doesn't work for single phenotype
-	loc$sigma = as.matrix(loc$sigma)  # as.matrix necessary so that the univ test still works with single phenotype
+	if (loc$P > 1) { loc$sigma = diag(loc$sigma) }; if (!is.null(input$sample.overlap)) { loc$sigma = sqrt(loc$sigma) %*% as.matrix(input$sample.overlap[loc$phenos,loc$phenos]) %*% sqrt(loc$sigma) } # if P > 1 is just because the diag() doesn't work for single phenotype
+	loc$sigma = as.matrix(loc$sigma); dimnames(loc$sigma) = rep(list(loc$phenos),2)
 	
-	# cap any h2's at 0
+	# cap any negative h2's at 0
 	loc$h2.obs[loc$h2.obs<0] = 0
 	loc$h2.latent[loc$h2.latent<0] = 0
 	
@@ -165,6 +173,7 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	# check if any phenos have negative sigma or omega
 	neg.var = diag(loc$sigma) < 0 | diag(loc$omega) < 0
 	if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id)); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
+	if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id,". This locus cannot be analysed")); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
 	if (any(neg.var, na.rm=T)) { print(paste0("Warning: Negative variance estimate for phenotype(s) '",paste(loc$phenos[which(neg.var)],collapse="', '"),"' in locus ",loc$id,"; Dropping these as they cannot be analysed")) }
 	
 	# remove all phenotypes that failed (either due to negative variance, N < K, or wsw.inversion problem)
@@ -172,23 +181,22 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 	if (any(failed)) {
 		if (all(failed)) { print(paste0("Error: Processing of all phenotypes in locus ",loc$id," failed (see preceeding warning messages for details)")); loc=NULL; return(NULL) }
 		
-		loc$delta = as.matrix(loc$delta[,!failed])	# delta
-		for (var in c("sigma","omega","omega.cor")) { loc[[var]] = as.matrix(loc[[var]][!failed,!failed]) } 		# symmetric matrices
-		for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = loc[[var]][!failed] }				# vectors
+		for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = loc[[var]][!failed] }	 # vectors
+		
+		loc$delta = as.matrix(loc$delta[,!failed]); colnames(loc$delta) = loc$phenos	# delta
+		
+		for (var in c("sigma","omega","omega.cor")) {   # symmetric matrices
+			loc[[var]] = as.matrix(loc[[var]][!failed,!failed])
+			dimnames(loc[[var]]) = rep(list(loc$phenos),2)	# need to add phenotype IDs again due to as.matrix()
+		}
 	}
-	# Add phenotype IDs to everything
-	colnames(loc$delta) = names(loc$N) = names(loc$binary) = names(loc$h2.obs) = names(loc$h2.latent) = loc$phenos
-	for (var in c("sigma","omega","omega.cor")) { dimnames(loc[[var]]) = rep(list(loc$phenos),2) }
-	
 	return(loc)
 }
 
 
 
 
-
 ### Sum-stats read-in ###
-
 format.pvalues = function(input, i) {
 	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),]		# remove NA pvalues
 	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P<1e-300] = 1e-300						# format zero p-values
