@@ -99,7 +99,7 @@ library(LAVA)
 
         -   ***P***: p-values
 
--   **Locus definition file**: File that defines loci either based on genomic coordinates or a list of SNPs (the locus file that we used in the LAVA preprint can be found in the support_data folder). Required headers:
+-   **Locus definition file**: File that defines loci either based on genomic coordinates or a list of SNPs (the locus file that we used in the LAVA preprint can be found in the support_data folder; this file was obtained via <https://github.com/cadeleeuw/lava-partitioning> using the g1000 data phase 3, build GRCh37/hg19). The locus file requires the following headers:
 
     -   ***LOC***: locus ID
 
