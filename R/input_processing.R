@@ -188,10 +188,10 @@ process.locus = function(locus, input, min.K=2, prune.thresh=99) {
 
 
 ### Sum-stats read-in ###
-
 format.pvalues = function(input, i) {
-	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),]		# remove NA pvalues
-	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P<1e-300] = 1e-300						# format zero p-values
+	input$sum.stats[[i]]$P = as.numeric(input$sum.stats[[i]]$P)	# if p < numerical limits in R, they will be read in as char
+	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),] # remove NA p-values
+	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P<1e-300] = 1e-300 # format zero p-values
 }
 
 filter.n = function(input, i) {
