@@ -76,6 +76,13 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 	X = scale(X)
 	N.ref = nrow(X)
 	
+	# remove non variant SNPs
+	non.var = apply(X, 2, function(x) all(is.na(x)))
+	if(any(non.var)) {
+		X = X[,!non.var]
+		loc$snps = loc$snps[!non.var]
+	}
+	
 	# check that order of SNPs match
 	if (!all(tolower(colnames(X))==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between reference data and analysis SNPs in locus", loc$id,". Please contact developer.")) } # this should never be triggered, but just in case
 	
