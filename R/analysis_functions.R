@@ -92,9 +92,9 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #' but this can be modified using the 'phenos' and 'target' arguments (see below)
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object)
+#' @param phenos Subset of phenotypes to analyse. If NULL, all phenotypes in the locus object will be analysed 
 #' @param target Target phenotype of interest. If NULL, bivariate correlations between all pairs of phenotypes will be computed; 
-#' Otherwise, this will only be done between the target phenotype and all other phenotypes.
+#' Otherwise, only the relations between the target phenotype and the other phenotypes will be tested.
 #' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
@@ -152,13 +152,15 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 }
 
 
+
 #' Local genetic multiple regression analysis
 #' 
-#' Will perform a local genetic multiple regression analysis, which models the genetic signal for a single outcome phenotype using two or more predictor phenotypes.
+#' Will perform a local genetic multiple regression analysis, which models the genetic signal for a single outcome phenotype of interest using two or more predictor phenotypes.
 #' Here, the genetic correlations between all predictors will be accounted for, and their genetic relation with the outcome will be conditioned on one another.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the last phenotype will be treated as the outcome
+#' @param target Outcome phenotype of interest (all other phenotypes will be considered predictors)
+#' @param phenos Subset of phenotypes to analyse. If NULL, all phenotypes in the locus object will be analysed. 
 #' @param adap.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
@@ -176,16 +178,20 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 #'     \item p - simulation p-values for the gammas
 #' }
 #' @export
-run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) } }
-	P = length(phenos); Px = P-1; Y = phenos[P]
-	if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for multiple regression analysis in locus: ",locus$id)); return(NULL) }
-	cond.idx = 1:Px
+run.multireg = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) {
+	if (is.null(target)) { stop("Please specify an outcome phenotype using the 'target' argument") }
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) } }
+	if (! all(target %in% locus$phenos)) { print(paste0("Error: Invalid target phenotype specified: '", paste0(target[! target %in% locus$phenos], collapse="', '"),"'")); return(NULL) }
+	phenos = unique(c(target, phenos))
+	P = length(phenos)
+	Y = target; X = phenos[! phenos %in% target]
 	
-	if (!suppress.message) print(paste0("~ Running multiple regression for outcome '",Y,"', with predictors '",paste(phenos[1:Px],collapse="', '"),"'"))
+	if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for multiple regression analysis in locus: ",locus$id)); return(NULL) }
+	
+	if (!suppress.message) print(paste0("~ Running multiple regression for outcome '",Y,"', with predictors '",paste(X,collapse="', '"),"'"))
 	
 	cond = list()
-	models = list(); for (i in 2:length(cond.idx)) { models[[i-1]] = combn(phenos[1:Px], i) }		# get all unique predictor models
+	models = list(); for (i in 2:length(X)) { models[[i-1]] = combn(X, i) }		# get all unique predictor models
 	if (only.full.model) { m=list(); m[[1]] = models[[length(models)]]; models = m }
 	
 	params = c("coef","r2"); ci.params = c("gamma.lower","gamma.upper","r2.lower","r2.upper")
@@ -193,27 +199,27 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 	for (j in 1:length(models)) {
 		cond[[j]] = list()
 		for (k in 1:ncol(models[[j]])) {
-			mod.idx = models[[j]][,k]		# get index of current model (actually by name, rather than 'index')
-			Pm = length(mod.idx)			# no. predictors in curr model
+			mod.pred = models[[j]][,k]	# get predictors in current model
+			Pm = length(mod.pred)
 			
 			# check invertibility of omega.x
-			eig = eigen(locus$omega[mod.idx,mod.idx]); if (any(eig$values / (sum(eig$values)/Pm) < 1e-4)) { stop("omega.X not invertible") }; rm(eig)
+			eig = eigen(locus$omega[mod.pred,mod.pred]); if (any(eig$values / (sum(eig$values)/Pm) < 1e-4)) { stop("Genetic covariance matrix of predictor phenotyopes is not invertible") }; rm(eig)
 			
 			cond[[j]][[k]] = data.frame(matrix(NA, nrow = Pm, ncol = length(params)+7)); colnames(cond[[j]][[k]]) = c("predictors", "outcome", params, ci.params, "p")
-			cond[[j]][[k]]$predictors = mod.idx; cond[[j]][[k]]$outcome = Y
+			cond[[j]][[k]]$predictors = mod.pred; cond[[j]][[k]]$outcome = Y
 			
 			# est params and store
-			est.params = estimate.params(locus, phenos=c(mod.idx,Y))
+			est.params = estimate.params(locus, phenos=c(mod.pred,Y))
 			for (p in params) { cond[[j]][[k]][[p]] = signif(est.params[[p]], 6) }
 			
 			# 95% confidence intervals
 			if (CIs) {
-				ci = ci.multivariate(K = locus$K, omega = locus$omega[c(mod.idx,Y),c(mod.idx,Y)], sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)])
+				ci = ci.multivariate(K = locus$K, omega = locus$omega[c(mod.pred,Y),c(mod.pred,Y)], sigma = locus$sigma[c(mod.pred,Y),c(mod.pred,Y)])
 				for (p in ci.params) { cond[[j]][[k]][[p]] = ci[[p]] }
 			}
 			# p-values
 			if (p.values) {
-				pvals = try(integral.p(multivariate.integral, K = locus$K, omega = locus$omega[c(mod.idx,Y),c(mod.idx,Y)], sigma = locus$sigma[c(mod.idx,Y),c(mod.idx,Y)], adap.thresh=adap.thresh), silent=T)
+				pvals = try(integral.p(multivariate.integral, K = locus$K, omega = locus$omega[c(mod.pred,Y),c(mod.pred,Y)], sigma = locus$sigma[c(mod.pred,Y),c(mod.pred,Y)], adap.thresh=adap.thresh), silent=T)
 				cond[[j]][[k]]$p = signif(pvals, 6)
 			}
 			# filter estimates that are too far out of bounds 
@@ -230,13 +236,16 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 }
 
 
+
+
 #' Local partial genetic correlation analysis
 #' 
 #' Will perform a local partial genetic correlation between the first two phenotypes (phen1, phen2) conditioned on the rest (Z). 
 #' Phenotype order is based on that within the locus object by default, but can be changed by passing a phenotype vector with the desired order to the 'phenos' argument.
 #' 
 #' @param locus Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest
-#' @param phenos Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the first two will be treated as p1 & p2 (the target phenotypes), the remaining as Z (those that are conditioned on)
+#' @param target The two target phenotypes of interest for which the partial correlation will be computed. All other phenotypes will be conditioned on.
+#' @param phenos Subset of phenotypes to analyse. If NULL, all phenotypes in the locus object will be analysed.
 #' @param adapt.thresh The thresholds at which to increase the number of iterations for the p-value generation. 
 #' Default number of iterations is 1e+4, but will be increased to 1e+5, and 1e+6 as p-values fall below the respective thresholds.
 #' If set to NULL, the maximum number of iterations is capped at the default (Note: this significantly speeds up the analysis, but results in poor accuracy for low p-values)
@@ -255,15 +264,18 @@ run.multireg = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full
 #'     \item p - simulation p-values for the partial genetic correlation
 #' }
 #' @export
-run.pcor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) } }
-	P = length(phenos); if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)); return(NULL) }
-	x = 1; y = 2; z = 3:P
+run.pcor = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
+	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) } }
+	if (length(target)!=2) { stop(paste0("Exactly two phenotype IDs must be provided as the target")) }
+	if (! all(target %in% locus$phenos)) { stop(paste0("Invalid target phenotype specified: '", paste0(target[! target %in% locus$phenos], collapse="', '"),"'")) }
+	phenos = unique(c(target, phenos)); P = length(phenos); if (P < 3) { stop(paste0("Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)) }
+	
+	x = which(phenos == target[1]); y = which(phenos == target[2]); z = which(! phenos %in% target)
 	
 	print(paste0("~ Running partial correlation for '",phenos[x],"' and '",phenos[y],"', conditioned on '",paste(phenos[z],collapse="' + '"),"'"))
 	
 	# check invertibility of omega.z
-	eig = eigen(locus$omega[phenos,phenos][z,z]); if (any(eig$values / (sum(eig$values)/length(z)) < 1e-4)) { stop("omega.Z not invertible") }; rm(eig)
+	eig = eigen(locus$omega[phenos,phenos][z,z]); if (any(eig$values / (sum(eig$values)/length(z)) < 1e-4)) { stop("Genetic covariance matrix for phenotypes in Z is not invertible") }; rm(eig)
 	
 	# get r2 of p1 (x) and p2 (y) on Z
 	r2 = data.frame(x = NA, y = NA)
@@ -271,20 +283,20 @@ run.pcor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, C
 		if (P == 3) {
 			r2[i] = run.bivar(locus, phenos[c(z,i)], p.values=F, CIs=F)$r2
 		} else {
-			r2[i] = run.multireg(locus, phenos[c(z,i)], only.full.model=T, p.values=F, CIs=F, suppress.message=T)[[1]][[1]]$r2[1]
+			r2[i] = run.multireg(locus, target=phenos[i], phenos=phenos[z], only.full.model=T, p.values=F, CIs=F, suppress.message=T)[[1]][[1]]$r2[1]
 		}
 	}
-	out = data.frame(phen1=phenos[x], phen2=phenos[y], z=paste(phenos[z],collapse=";"), r2.phen1_z = r2$x, r2.phen2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
+	out = data.frame(phen1 = phenos[x], phen2 = phenos[y], z = paste(phenos[z],collapse=";"), r2.phen1_z = r2$x, r2.phen2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
 	out$pcor = partial.cor(locus$omega[phenos,phenos], x, y, z)
 	
 	if (CIs) {
-		ci = ci.pcor(K=locus$K, xy.index=c(x,y), z.index=z, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos])
+		ci = ci.pcor(K = locus$K, xy.index = c(x,y), z.index = z, omega = locus$omega[phenos,phenos], sigma = locus$sigma[phenos,phenos])
 		out$ci.lower = ci[2]; out$ci.upper = ci[3]
 	}
 	
 	# if r2 is < max.r2, proceed with p-values
 	if (all(out[c("r2.phen1_z","r2.phen2_z")] < max.r2) & p.values) {
-		out$p = integral.p(pcov.integral, K=locus$K, omega=locus$omega[phenos,phenos], sigma=locus$sigma[phenos,phenos], adap.thresh=adap.thresh)
+		out$p = integral.p(pcov.integral, K = locus$K, omega = locus$omega[phenos,phenos], sigma = locus$sigma[phenos,phenos], adap.thresh = adap.thresh)
 	}
 	
 	# filter any values that are too far out of bounds
@@ -295,6 +307,8 @@ run.pcor = function(locus, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, C
 	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
 	return(out)
 }
+
+
 
 
 # estimate coefficients using mom (for bivariate correlation and multiple regression)
