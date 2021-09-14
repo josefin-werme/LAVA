@@ -9,7 +9,7 @@
 #' @param prune.thresh PC pruning threshold governing the maximum number of PCs to retain.
 #' PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
 #' 
-#' @return Returns an environment containing general locus info, the processed sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
+#' @return Returns an environment containing general locus info, the processed locus related sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
 #' If processing fails for specific phenotypes, only the successful phenotypes will be returned.
 #' 
 #' \itemize{
@@ -26,7 +26,7 @@
 #'     \item phenos - phenotype IDs
 #'     \item binary - boolean vector indicating whether phentoypes are binary
 #'     \item h2.obs - observed local heritability
-#'     \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in input info file)
+#'     \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in the input info file)
 #' }
 #' 
 #' @export
@@ -179,7 +179,6 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 	
 	# check if any phenos have negative sigma or omega
 	neg.var = diag(loc$sigma) < 0 | diag(loc$omega) < 0
-	if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id)); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
 	if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id,". This locus cannot be analysed")); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
 	if (any(neg.var, na.rm=T)) { print(paste0("Warning: Negative variance estimate for phenotype(s) '",paste(loc$phenos[which(neg.var)],collapse="', '"),"' in locus ",loc$id,"; Dropping these as they cannot be analysed")) }
 	
@@ -312,7 +311,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 	input$info = input$info[match(phenos, input$info$phenotype),]			# match to phenotypes of interest
 	input$info$N = input$info$cases + input$info$controls					# total N column
 	input$info$prop_cases = input$info$cases / input$info$N 				# get proportion cases
-	input$info$binary = input$info$prop_cases!=1							# infer binary phenotypes from prop_cases
+	input$info$binary = !is.na(input$info$prop_cases)						# infer binary phenotypes from prop_cases
 	input$P = length(input$info$phenotype)
 	input$ref.prefix = ref.prefix
 	if (input$P > 1 & !is.null(sample.overlap.file)) { input$sample.overlap = process.sample.overlap(sample.overlap.file, phenos) } else { input$sample.overlap=NULL } # setting sample overlap to null if only one phenotype
@@ -346,20 +345,27 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #'     \itemize{
 #'        \item N = cases + controls
 #'        \item prop_cases = cases / N
-#'        \item binary = prop_cases != 1
+#'        \item binary = !is.na(prop_cases)
 #'     }
 #'     \item P - number of phenotypes
 #'     \item sample.overlap - sample overlap matrix
 #'     \item sum.stats - processed summary statistics (SNP aligned effect sizes, subsetted to common SNPs across data sets, effect sizes converted to Z, etc)
 #'     \item ref.prefix - genotype reference data prefix
-#'     \item analysis.snps - subset of SNPs shared across all data sets
-#'     \item unalignable.snps - SNPs removed during alignment
+#'     \item analysis.snps - subset of SNPs that are shared across all data sets and were not removed during alignment
+#'     \item unalignable.snps - SNPs removed during alignment (e.g. for being strand ambiguous)
 #'     \item ref - environment containing the genotype reference data bim file (ref$bim)
 #' }
 #' 
 #' @export
 process.input = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
 	input = get.input.info(input.info.file, sample.overlap.file, ref.prefix, phenos)
+	if (all(input$info$binary)) { 
+		print(paste0("NOTE: All phenotypes treated as binary ('",paste0(input$info$phenotype,collapse="', '"),"')"))
+	} else if (all(!input$info$binary)) {
+		print(paste0("NOTE: All phenotypes treated as continuous ('",paste0(input$info$phenotype,collapse="', '"),"')"))
+	} else {
+		print(paste0("NOTE: Treating '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"' as binary and '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"' as continuous"))
+	}
 	input = process.sumstats(input)
 	return(input)
 }
@@ -370,7 +376,7 @@ process.input = function(input.info.file, sample.overlap.file, ref.prefix, pheno
 #' This function reads in the locus file, defining the locus boundaries using either coordinates (headers: 'CHR', 'START', 'STOP') and/or ';' separated SNP lists (header: 'SNPS').
 #' A locus ID column is also required (header: 'LOC').\cr
 #' \cr
-#' If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different GRChX version than the reference).\cr
+#' If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different genome build version than the reference).\cr
 #' 
 #' @param loc.file Name of locus file
 #' 
