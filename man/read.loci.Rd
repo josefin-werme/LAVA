@@ -13,5 +13,5 @@ read.loci(loc.file)
 This function reads in the locus file, defining the locus boundaries using either coordinates (headers: 'CHR', 'START', 'STOP') and/or ';' separated SNP lists (header: 'SNPS').
 A locus ID column is also required (header: 'LOC').\cr
 \cr
-If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different GRChX version than the reference).\cr
+If both coordinates and SNP list columns are provided, only the SNP lists will be used for subsetting the reference data (this can be convenient if the SNP coordinates are based on a different genome build version than the reference).\cr
 }
