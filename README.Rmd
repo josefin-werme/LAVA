@@ -87,7 +87,7 @@ library(LAVA)
 
     -   ***A2 / REF***: reference allele
 
-    -   ***N / NMISS / OBS_CT / N_analyzed***: number of samples
+    -   ***N / NMISS / N_analyzed***: number of samples
 
     -   ***Z / T / STAT / Zscore***: if provided, no p-values or coefficients are needed; otherwise, please provide both:
 

@@ -219,7 +219,7 @@ process.sumstats = function(input) {
 	check.files.exist(input$info$filename)
 	
 	# possible / required headers
-	headers = list(); headers$N = c("N","NMISS","N_analyzed","OBS_CT"); headers$STAT = c("Z","T","STAT","Zscore"); headers$SNP = c("SNP","ID","SNPID_UKB","SNPID","MarkerName","RSID","RSID_UKB"); headers$B = c("B","BETA"); headers$A1=c("A1","ALT"); headers$A2=c("A2","REF")	 # header variations
+	headers = list(); headers$N = c("N","NMISS","N_analyzed"); headers$STAT = c("Z","T","STAT","Zscore"); headers$SNP = c("SNP","ID","SNPID_UKB","SNPID","MarkerName","RSID","RSID_UKB"); headers$B = c("B","BETA"); headers$A1=c("A1","ALT"); headers$A2=c("A2","REF")	 # header variations
 	
 	# read in sumstats
 	print("...Reading in sumstats")
