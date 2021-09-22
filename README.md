@@ -632,7 +632,8 @@ progress = ceiling(quantile(1:n.loc, seq(.05,1,.05)))   # (if you want to print 
 u=b=list()
 for (i in 1:n.loc) {
         if (i %in% progress) print(paste("..",names(progress[which(progress==i)])))     # (printing progress)
-        locus = process.locus(loci[i,], input)                                          # process locus
+        locus = try(process.locus(loci[i,], input), silent=T)                           # process locus
+        if (class(locus)=="try-error") { next }
         
         # It is possible that the locus cannot be defined for various reasons (e.g. too few SNPs), so the !is.null(locus) check is necessary before calling the analysis functions.
         if (!is.null(locus)) {
