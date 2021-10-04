@@ -27,14 +27,14 @@ An object containing processed input data and related info
     \itemize{
        \item N = cases + controls
        \item prop_cases = cases / N
-       \item binary = prop_cases != 1
+       \item binary = !is.na(prop_cases)
     }
     \item P - number of phenotypes
     \item sample.overlap - sample overlap matrix
     \item sum.stats - processed summary statistics (SNP aligned effect sizes, subsetted to common SNPs across data sets, effect sizes converted to Z, etc)
     \item ref.prefix - genotype reference data prefix
-    \item analysis.snps - subset of SNPs shared across all data sets
-    \item unalignable.snps - SNPs removed during alignment
+    \item analysis.snps - subset of SNPs that are shared across all data sets and were not removed during alignment
+    \item unalignable.snps - SNPs removed during alignment (e.g. for being strand ambiguous)
     \item ref - environment containing the genotype reference data bim file (ref$bim)
 }
 }

@@ -6,6 +6,7 @@
 \usage{
 run.pcor(
   locus,
+  target,
   phenos = NULL,
   adap.thresh = c(1e-04, 1e-06),
   p.values = T,
@@ -17,7 +18,9 @@ run.pcor(
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}
 
-\item{phenos}{Subset of phenotypes to analyse, and/or their order. If NULL, all phenotypes in the locus object will be analysed (in the order listed within the locus object). NOTE: the first two will be treated as p1 & p2 (the target phenotypes), the remaining as Z (those that are conditioned on)}
+\item{target}{The two target phenotypes of interest for which the partial correlation will be computed. All other phenotypes will be conditioned on.}
+
+\item{phenos}{Subset of phenotypes to analyse. If NULL, all phenotypes in the locus object will be analysed.}
 
 \item{p.values}{Set to F to suppress p-values}
 

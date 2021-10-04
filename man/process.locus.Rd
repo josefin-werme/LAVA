@@ -4,10 +4,12 @@
 \alias{process.locus}
 \title{Process locus info}
 \usage{
-process.locus(locus, input, min.K = 2, prune.thresh = 99)
+process.locus(locus, input, phenos = NULL, min.K = 2, prune.thresh = 99)
 }
 \arguments{
 \item{input}{Input object created with the \code{\link{process.input}} function, containing relevant summary statistics and related info (e.g. sample overlap, case/control ratio)}
+
+\item{phenos}{Subset of phenotypes from the input object to process. If NULL (default), all phenotypes will be processed}
 
 \item{min.K}{Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will fail and the locus cannot be analysed.}
 
