@@ -143,7 +143,7 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], adap.thresh=adap.thresh), 6) }
 	}
 	# filter any estimates that are too far out of bounds
-	bivar = filter.params(data = bivar, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param in data set must be gamma/rho; params argument just needs to list those that will be set to NA if rho is too far out of bounds
+	bivar = filter.params(data = bivar, locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param in data set must be gamma/rho; params argument just needs to list those that will be set to NA if rho is too far out of bounds
 	# cap out of bounds values (CI's are already capped)
 	for (p in params) { bivar[[p]] = cap(bivar[[p]], lim=c(ifelse(p=="r2", 0, -1), 1)) }	# capping rhos at -1/1, and r2s at 0/1
 	colnames(bivar)[which(colnames(bivar)=="coef")] = "rho"
@@ -223,7 +223,7 @@ run.multireg = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), o
 				cond[[j]][[k]]$p = signif(pvals, 6)
 			}
 			# filter estimates that are too far out of bounds 
-			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T) # first param must be gamma/rho
+			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T) # first param must be gamma/rho
 			
 			# cap r2 to 0 / 1 (CI's are already capped)
 			cond[[j]][[k]]$r2 = cap(cond[[j]][[k]]$r2, lim=c(0,1))
@@ -301,7 +301,7 @@ run.pcor = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.val
 	
 	# filter any values that are too far out of bounds
 	params = c("pcor","ci.lower","ci.upper")
-	out = filter.params(data = out, params = params, param.lim = param.lim) # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
+	out = filter.params(data = out, locus.id = locus$id, params = params, param.lim = param.lim) # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
 	out$pcor = cap(out$pcor) # cap the pcor at -1/1 (CIs are capped already)
 	
 	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
@@ -330,7 +330,7 @@ estimate.params = function(locus, phenos=NULL) {
 
 
 # remove estimates that are excessively out of bounds
-filter.params = function(data, params, param.lim=1.25, multreg=F) {	
+filter.params = function(data, locus.id, params, param.lim=1.25, multreg=F) {	
 	out.of.bounds = abs(data[params[1]]) > abs(param.lim)			# assumes first param is gamma/rho
 	
 	if (any(out.of.bounds)) {
@@ -339,7 +339,7 @@ filter.params = function(data, params, param.lim=1.25, multreg=F) {
 		# print warning
 		message("Warning: Estimates too far out of bounds (+-",param.lim,") for phenotype(s) ",
 				paste0(paste0(data[phen.cols[1]][out.of.bounds]," ~ ",data[phen.cols[2]][out.of.bounds]," (",signif(data[params[1]][out.of.bounds],4),")"),collapse=", "),
-				" in locus ",locus$id,". Values will be set to NA. To change this threshold, modify the 'param.lim' argument")  # dont need to pass locus since its an env
+				" in locus ",locus.id,". Values will be set to NA. To change this threshold, modify the 'param.lim' argument")
 		# set to NA
 		if (!multreg) { data[out.of.bounds, params] = NA } else { data[,params] = NA }
 	}

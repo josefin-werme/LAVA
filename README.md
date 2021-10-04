@@ -3,6 +3,7 @@ LAVA TUTORIAL
 Josefin Werme, CTG Lab, VU Amsterdam
 2021-09-16
 
+
 This tutorial shows you how to read in and analyse data with LAVA
 (**L**ocal **A**nalysis of \[co\]**V**ariant **A**ssociation): A tool
 developed for local genetic correlation (*r*<sub>g</sub>) analysis.
@@ -116,7 +117,12 @@ directory*
         -   ***P***: p-values
 
 -   **Locus definition file**: File that defines loci either based on
-    genomic coordinates or a list of SNPs. Required headers:
+    genomic coordinates or a list of SNPs (the locus file that we used
+    in the LAVA preprint can be found in the support\_data folder; this
+    file was obtained via
+    <https://github.com/cadeleeuw/lava-partitioning> using the g1000
+    data phase 3, build GRCh37/hg19). The locus file requires the
+    following headers:
 
     -   ***LOC***: locus ID
 
@@ -282,6 +288,7 @@ run.bivar(locus)
 #> 1 0.000506888
 #> 2 0.566155000
 #> 3 0.300420000
+
 ```
 
 When multiple phenotypes are entered simultaneously, bivariate
@@ -295,6 +302,7 @@ run.bivar(locus, phenos=c("neuro","depression"))
 #> 1 neuro depression 0.527861   0.27308   0.77583 0.278637  0.07457  0.60191
 #>             p
 #> 1 0.000515433
+
 ```
 
 Additionally, should you only be interested in the *r*<sub>g</sub>‘s
@@ -310,6 +318,7 @@ run.bivar(locus, target="bmi")
 #>          p
 #> 1 0.566160
 #> 2 0.301378
+
 # ?run.bivar  # check the function description for more options
 ```
 
@@ -341,6 +350,7 @@ run.univ.bivar(locus)
 #> 2 0.565645000
 #> 3 0.299320000
 
+
 # or with a custom p-value threshold
 run.univ.bivar(locus, univ.thresh = 1e-8)
 #> $univ
@@ -352,6 +362,7 @@ run.univ.bivar(locus, univ.thresh = 1e-8)
 #> $bivar
 #>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper        p
 #> 1 neuro   bmi 0.106949  -0.09865   0.31595 0.0114381        0  0.09988 0.299606
+
 ```
 
 *\[ You can use the ‘phenos’ and ‘target’ arguments with this function
@@ -415,6 +426,7 @@ run.univ.bivar(locus, target="hypothyroidism")
 #> 1  0.82893 2.50871e-43
 #> 2  0.37301 1.21888e-24
 #> 3  0.88173 6.60902e-26
+
 ```
 
 They are! We can then run the multiple regression with all predictors.
@@ -446,6 +458,7 @@ run.multireg(locus, target='hypothyroidism', adap.thresh=NULL) # We can set the 
 #>   r2.upper           p
 #> 1  0.92207 1.12171e-01
 #> 2  0.92207 9.47274e-10
+
 #> 
 #> 
 #> [[2]]
@@ -458,6 +471,7 @@ run.multireg(locus, target='hypothyroidism', adap.thresh=NULL) # We can set the 
 #> 1  0.93456 0.1895720
 #> 2  0.93456 0.1871760
 #> 3  0.93456 0.0548382
+
 ```
 
 Here, the ‘target’ argument specifies the outcome phenotype of interest,
@@ -491,6 +505,7 @@ run.bivar(locus, phenos=c("asthma","rheuma","diabetes"))
 #> 1 5.80165e-46
 #> 2 8.47181e-32
 #> 3 2.93264e-29
+
 ```
 
 Clues of this collinearity are also evident in the multivariate model
@@ -525,6 +540,7 @@ run.multireg(locus, target='hypothyroidism', only.full.model=T)
 #> 1  0.93378 0.1843300
 #> 2  0.93378 0.1856890
 #> 3  0.93378 0.0557826
+
 ```
 
 ### Partial correlation
@@ -552,6 +568,7 @@ run.pcor(locus, target=c("hypothyroidism","diabetes"), phenos='asthma')
 #> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037  0.10128
 #>   ci.upper         p
 #> 1  0.76593 0.0147807
+
 ```
 
 Indeed, here you see that the partial correlation has been almost
@@ -568,6 +585,7 @@ run.pcor(locus, target=c("hypothyroidism","diabetes"), phenos="rheuma", adap.thr
 #> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.68325
 #>   ci.upper           p
 #> 1  0.94506 3.09121e-13
+
 ```
 
 The partial correlation (.82) is now only slightly lower than the
@@ -589,6 +607,7 @@ run.pcor(locus, target=c("hypothyroidism","diabetes"))
 #> 1 hypothyroidism diabetes asthma;rheuma   0.719291   0.831584 0.502074  0.12317
 #>   ci.upper         p
 #> 1  0.87451 0.0141274
+
 ```
 
 ------------------------------------------------------------------------
@@ -603,10 +622,11 @@ local *r*<sub>g</sub>’s across all loci in the locus file.
 
 #### Bash
 
-This is how you may call the R script from the command line
+This is how you may call the R script from the command line (note: file
+paths may need to be adapted depending on your set-up)
 
 ``` bash
-Rscript "g1000_test" "test.loci" "input.info.file" "sample.overlap.file" "depression;bmi" "depression.bmi"
+Rscript lava_script.R "g1000_test" "test.loci" "input.info.txt" "sample.overlap.txt" "depression;bmi" "depression.bmi"
 ```
 
 #### R script
@@ -616,7 +636,7 @@ Rscript "g1000_test" "test.loci" "input.info.file" "sample.overlap.file" "depres
 arg = commandArgs(T); ref.prefix = arg[1]; loc.file = arg[2]; info.file = arg[3]; sample.overlap.file = arg[4]; phenos = unlist(strsplit(arg[5],";")); out.fname = arg[6]
 
 ### Load package
-library(lava)
+library(LAVA)
 
 ### Read in data
 loci = read.loci(loc.file); n.loc = nrow(loci)
