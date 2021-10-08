@@ -275,7 +275,7 @@ process.sumstats = function(input) {
 	input$analysis.snps = intersect(input$ref$bim$snp.name, input$sum.stats[[1]]$SNP)	# all SNPs will be ordered according to bim file
 	if (input$P>1) { for (i in 2:input$P) { input$analysis.snps = intersect(input$analysis.snps, input$sum.stats[[i]]$SNP) }}
 	if (length(input$analysis.snps) < 3) { stop("Less than 3 SNPs shared across data sets; make sure you have matching SNP ID formats across sumstats / reference data sets")
-	} else { print(paste("~",length(input$analysis.snps),"SNPs shared across data sets")) }
+	} else { print(paste("...",length(input$analysis.snps),"SNPs shared across data sets")) }
 	
 	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
 	
@@ -311,7 +311,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 	input$info = input$info[match(phenos, input$info$phenotype),]			# match to phenotypes of interest
 	input$info$N = input$info$cases + input$info$controls					# total N column
 	input$info$prop_cases = input$info$cases / input$info$N 				# get proportion cases
-	input$info$binary = !is.na(input$info$prop_cases)						# infer binary phenotypes from prop_cases
+	input$info$binary = !is.na(input$info$prop_cases) & (input$info$prop_cases != 1)	# infer binary phenotypes from prop_cases==1 or NA
 	input$P = length(input$info$phenotype)
 	input$ref.prefix = ref.prefix
 	if (input$P > 1 & !is.null(sample.overlap.file)) { input$sample.overlap = process.sample.overlap(sample.overlap.file, phenos) } else { input$sample.overlap=NULL } # setting sample overlap to null if only one phenotype
@@ -345,7 +345,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #'     \itemize{
 #'        \item N = cases + controls
 #'        \item prop_cases = cases / N
-#'        \item binary = !is.na(prop_cases)
+#'        \item binary = !is.na(prop_cases) & (prop_cases != 1)
 #'     }
 #'     \item P - number of phenotypes
 #'     \item sample.overlap - sample overlap matrix
@@ -358,13 +358,16 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' 
 #' @export
 process.input = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
+	print("...Processing input info")
 	input = get.input.info(input.info.file, sample.overlap.file, ref.prefix, phenos)
 	if (all(input$info$binary)) { 
-		print(paste0("NOTE: All phenotypes treated as binary ('",paste0(input$info$phenotype,collapse="', '"),"')"))
+		print(paste0("...** All phenotypes treated as BINARY ('",paste0(input$info$phenotype,collapse="', '"),"')"))
 	} else if (all(!input$info$binary)) {
-		print(paste0("NOTE: All phenotypes treated as continuous ('",paste0(input$info$phenotype,collapse="', '"),"')"))
+		print(paste0("...** All phenotypes treated as CONTINUOUS ('",paste0(input$info$phenotype,collapse="', '"),"')"))
 	} else {
-		print(paste0("NOTE: Treating '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"' as binary and '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"' as continuous"))
+		#print(paste0("...** Treating '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"' as BINARY and '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"' as CONTINUOUS"))
+		print(paste0("...** BINARY: '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"'"))
+		print(paste0("...** CONTINUOUS: '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"'"))
 	}
 	input = process.sumstats(input)
 	return(input)

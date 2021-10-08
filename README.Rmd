@@ -325,7 +325,7 @@ If you are interested in analysing the bivariate local *r*~g~'s between a large 
 
 #### Bash
 
-This is how you may call the R script from the command line (note: file paths may need to be adapted depending on your set-up)
+This is how you may call the R script from the command line (**note**: file paths may need to be adapted depending on your set-up)
 
 ```{bash, eval=F}
 Rscript lava_script.R "g1000_test" "test.loci" "input.info.txt" "sample.overlap.txt" "depression;bmi" "depression.bmi"
