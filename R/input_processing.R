@@ -203,10 +203,10 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 
 
 ### Sum-stats read-in ###
-format.pvalues = function(input, i) {
+format.pvalues = function(input, i, min.pval) {
 	input$sum.stats[[i]]$P = as.numeric(input$sum.stats[[i]]$P) # if p < numerical limits in R, they will be read in as char
-	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),]		# remove NA pvalues
-	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P<1e-300] = 1e-300						# format zero p-values
+	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P), ]		# remove NA pvalues
+	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P < min.pval] = min.pval				# format zero p-values
 }
 
 filter.n = function(input, i) {
@@ -214,7 +214,15 @@ filter.n = function(input, i) {
 	input$sum.stats[[i]] = subset(input$sum.stats[[i]], N > 0)							# remove negative N
 }
 
+format.z = function(input, i, min.pval) {
+	input$sum.stats[[i]]$STAT = as.numeric(input$sum.stats[[i]]$STAT)
+	inf.z = which(abs(input$sum.stats[[i]]$STAT) > abs(qnorm(min.pval/2)))
+	input$sum.stats[[i]]$STAT[inf.z] = abs(qnorm(min.pval/2)) * sign(input$sum.stats[[i]]$STAT[inf.z])
+}
+
 process.sumstats = function(input) {
+	min.pval = 1e-300
+	
 	# check if input files exist
 	check.files.exist(input$info$filename)
 	
@@ -241,11 +249,11 @@ process.sumstats = function(input) {
 			}
 		}
 		input$sum.stats[[i]]$SNP = tolower(input$sum.stats[[i]]$SNP)								# set SNP IDs to lower case
-		if ("P" %in% colnames(input$sum.stats[[i]])) { format.pvalues(input,i) }					# format p-values
+		if ("P" %in% colnames(input$sum.stats[[i]])) { format.pvalues(input, i, min.pval) }			# format p-values
 		filter.n(input,i)																			# remove missing or negative N
 		
 		# convert effect sizes to Z if there are none already
-		if (! "STAT" %in% colnames(input$sum.stats[[i]])) {	# if no Z / T
+		if (! "STAT" %in% colnames(input$sum.stats[[i]])) {
 			effect.size = c("B","OR","logOdds")
 			param = effect.size[effect.size %in% colnames(input$sum.stats[[i]])][1]	# get relevant effect size parameter (takes first if multiple, e.g. both OR/logOdds)
 			# check that both param + P exist
@@ -261,6 +269,8 @@ process.sumstats = function(input) {
 			Z = -qnorm(input$sum.stats[[i]]$P/2)
 			input$sum.stats[[i]]$STAT = Z * sign
 		}
+		format.z(input, i, min.pval) # format Z stats (truncate out of range ones)
+		
 		input$sum.stats[[i]] = input$sum.stats[[i]][c("SNP","A1","A2","STAT","N")] 		# retain relevant columns
 	}
 	names(input$sum.stats) = input$info$phenotype
