@@ -132,7 +132,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 		
 		for (i in loc$phenos) {
 			# check if N < K+50
-			if (loc$N[i] < loc$K + 50) { print(paste0("Warning: N too small for phenotype '",loc$phenos[i],"' in locus ",loc$id)); next() }
+			if (loc$N[i] < loc$K + 50) { print(paste0("Warning: N too small for phenotype '",i,"' in locus ",loc$id)); next() }
 			
 			if (loc$binary[i]) {
 				fit = fit.logistic(G, X, R, loc$N[i], subset(input$info,phenotype==i)$prop_cases, loc.sum[[i]]$STAT, loc.sum[[i]]$N, phen.id=i, loc.id=loc$id, dropped=dropped)
