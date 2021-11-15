@@ -1,7 +1,7 @@
 LAVA TUTORIAL
 ================
-Josefin Werme, CTG Lab, VU Amsterdam
-2021-10-08
+Josefin Werme (**j.werme@vu.nl**), CTG Lab, VU Amsterdam
+2021-10-08 
 
 This tutorial shows you how to read in and analyse data with LAVA
 (**L**ocal **A**nalysis of \[co\]**V**ariant **A**ssociation): A tool
