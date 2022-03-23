@@ -27,7 +27,7 @@ An object containing processed input data and related info
     \itemize{
        \item N = cases + controls
        \item prop_cases = cases / N
-       \item binary = !is.na(prop_cases)
+       \item binary = !is.na(prop_cases) & (prop_cases != 1)
     }
     \item P - number of phenotypes
     \item sample.overlap - sample overlap matrix

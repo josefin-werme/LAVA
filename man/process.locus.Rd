@@ -19,7 +19,7 @@ PCs are selected as such that the cumulative proportion of variance explained is
 \item{loc}{Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')}
 }
 \value{
-Returns an environment containing general locus info, the processed sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
+Returns an environment containing general locus info, the processed locus related sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
 If processing fails for specific phenotypes, only the successful phenotypes will be returned.
 
 \itemize{
@@ -36,7 +36,7 @@ If processing fails for specific phenotypes, only the successful phenotypes will
     \item phenos - phenotype IDs
     \item binary - boolean vector indicating whether phentoypes are binary
     \item h2.obs - observed local heritability
-    \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in input info file)
+    \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in the input info file)
 }
 }
 \description{

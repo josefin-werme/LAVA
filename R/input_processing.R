@@ -132,7 +132,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 		
 		for (i in loc$phenos) {
 			# check if N < K+50
-			if (loc$N[i] < loc$K + 50) { print(paste0("Warning: N too small for phenotype '",loc$phenos[i],"' in locus ",loc$id)); next() }
+			if (loc$N[i] < loc$K + 50) { print(paste0("Warning: N too small for phenotype '",i,"' in locus ",loc$id)); next() }
 			
 			if (loc$binary[i]) {
 				fit = fit.logistic(G, X, R, loc$N[i], subset(input$info,phenotype==i)$prop_cases, loc.sum[[i]]$STAT, loc.sum[[i]]$N, phen.id=i, loc.id=loc$id, dropped=dropped)
@@ -203,10 +203,10 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 
 
 ### Sum-stats read-in ###
-format.pvalues = function(input, i) {
+format.pvalues = function(input, i, min.pval) {
 	input$sum.stats[[i]]$P = as.numeric(input$sum.stats[[i]]$P) # if p < numerical limits in R, they will be read in as char
-	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P),]		# remove NA pvalues
-	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P<1e-300] = 1e-300						# format zero p-values
+	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P), ]		# remove NA pvalues
+	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P < min.pval] = min.pval				# format zero p-values
 }
 
 filter.n = function(input, i) {
@@ -214,7 +214,15 @@ filter.n = function(input, i) {
 	input$sum.stats[[i]] = subset(input$sum.stats[[i]], N > 0)							# remove negative N
 }
 
+format.z = function(input, i, min.pval) {
+	input$sum.stats[[i]]$STAT = as.numeric(input$sum.stats[[i]]$STAT)
+	inf.z = which(abs(input$sum.stats[[i]]$STAT) > abs(qnorm(min.pval/2)))
+	input$sum.stats[[i]]$STAT[inf.z] = abs(qnorm(min.pval/2)) * sign(input$sum.stats[[i]]$STAT[inf.z])
+}
+
 process.sumstats = function(input) {
+	min.pval = 1e-300
+	
 	# check if input files exist
 	check.files.exist(input$info$filename)
 	
@@ -241,11 +249,11 @@ process.sumstats = function(input) {
 			}
 		}
 		input$sum.stats[[i]]$SNP = tolower(input$sum.stats[[i]]$SNP)								# set SNP IDs to lower case
-		if ("P" %in% colnames(input$sum.stats[[i]])) { format.pvalues(input,i) }					# format p-values
+		if ("P" %in% colnames(input$sum.stats[[i]])) { format.pvalues(input, i, min.pval) }			# format p-values
 		filter.n(input,i)																			# remove missing or negative N
 		
 		# convert effect sizes to Z if there are none already
-		if (! "STAT" %in% colnames(input$sum.stats[[i]])) {	# if no Z / T
+		if (! "STAT" %in% colnames(input$sum.stats[[i]])) {
 			effect.size = c("B","OR","logOdds")
 			param = effect.size[effect.size %in% colnames(input$sum.stats[[i]])][1]	# get relevant effect size parameter (takes first if multiple, e.g. both OR/logOdds)
 			# check that both param + P exist
@@ -261,6 +269,8 @@ process.sumstats = function(input) {
 			Z = -qnorm(input$sum.stats[[i]]$P/2)
 			input$sum.stats[[i]]$STAT = Z * sign
 		}
+		format.z(input, i, min.pval) # format Z stats (truncate out of range ones)
+		
 		input$sum.stats[[i]] = input$sum.stats[[i]][c("SNP","A1","A2","STAT","N")] 		# retain relevant columns
 	}
 	names(input$sum.stats) = input$info$phenotype
@@ -275,7 +285,7 @@ process.sumstats = function(input) {
 	input$analysis.snps = intersect(input$ref$bim$snp.name, input$sum.stats[[1]]$SNP)	# all SNPs will be ordered according to bim file
 	if (input$P>1) { for (i in 2:input$P) { input$analysis.snps = intersect(input$analysis.snps, input$sum.stats[[i]]$SNP) }}
 	if (length(input$analysis.snps) < 3) { stop("Less than 3 SNPs shared across data sets; make sure you have matching SNP ID formats across sumstats / reference data sets")
-	} else { print(paste("~",length(input$analysis.snps),"SNPs shared across data sets")) }
+	} else { print(paste("...",length(input$analysis.snps),"SNPs shared across data sets")) }
 	
 	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
 	
@@ -311,7 +321,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 	input$info = input$info[match(phenos, input$info$phenotype),]			# match to phenotypes of interest
 	input$info$N = input$info$cases + input$info$controls					# total N column
 	input$info$prop_cases = input$info$cases / input$info$N 				# get proportion cases
-	input$info$binary = !is.na(input$info$prop_cases)						# infer binary phenotypes from prop_cases
+	input$info$binary = !is.na(input$info$prop_cases) & (input$info$prop_cases != 1)	# infer binary phenotypes from prop_cases==1 or NA
 	input$P = length(input$info$phenotype)
 	input$ref.prefix = ref.prefix
 	if (input$P > 1 & !is.null(sample.overlap.file)) { input$sample.overlap = process.sample.overlap(sample.overlap.file, phenos) } else { input$sample.overlap=NULL } # setting sample overlap to null if only one phenotype
@@ -345,7 +355,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #'     \itemize{
 #'        \item N = cases + controls
 #'        \item prop_cases = cases / N
-#'        \item binary = !is.na(prop_cases)
+#'        \item binary = !is.na(prop_cases) & (prop_cases != 1)
 #'     }
 #'     \item P - number of phenotypes
 #'     \item sample.overlap - sample overlap matrix
@@ -358,13 +368,16 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' 
 #' @export
 process.input = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
+	print("...Processing input info")
 	input = get.input.info(input.info.file, sample.overlap.file, ref.prefix, phenos)
 	if (all(input$info$binary)) { 
-		print(paste0("NOTE: All phenotypes treated as binary ('",paste0(input$info$phenotype,collapse="', '"),"')"))
+		print(paste0("...** All phenotypes treated as BINARY ('",paste0(input$info$phenotype,collapse="', '"),"')"))
 	} else if (all(!input$info$binary)) {
-		print(paste0("NOTE: All phenotypes treated as continuous ('",paste0(input$info$phenotype,collapse="', '"),"')"))
+		print(paste0("...** All phenotypes treated as CONTINUOUS ('",paste0(input$info$phenotype,collapse="', '"),"')"))
 	} else {
-		print(paste0("NOTE: Treating '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"' as binary and '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"' as continuous"))
+		#print(paste0("...** Treating '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"' as BINARY and '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"' as CONTINUOUS"))
+		print(paste0("...** BINARY: '",paste0(subset(input$info, binary==T)$phenotype,collapse="', '"),"'"))
+		print(paste0("...** CONTINUOUS: '",paste0(subset(input$info, binary==F)$phenotype,collapse=", '"),"'"))
 	}
 	input = process.sumstats(input)
 	return(input)
