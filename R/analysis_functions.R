@@ -79,7 +79,7 @@ run.univ = function(locus, phenos=NULL, var=F) {
 	univ = data.frame(phen = phenos)
 	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
 	univ$h2.obs = signif(locus$h2.obs[phenos], 6)
-	if ('prevalence' %in% colnames(input$info)) { univ$h2.latent = signif(locus$h2.latent[phenos],6) }
+	if (any(!is.na(locus$h2.latent[phenos]))) { univ$h2.latent = signif(locus$h2.latent[phenos],6) } #modified cdl 18/3
 	univ$p = signif(univariate.test(locus, phenos), 6)
 	return(univ)
 }

@@ -7,10 +7,12 @@
 #' @param phenos Subset of phenotypes from the input object to process. If NULL (default), all phenotypes will be processed
 #' @param min.K Minimum number of PCs required to process locus (cannot be less than two). If this criterion is not met, the function will fail and the locus cannot be analysed.
 #' @param prune.thresh PC pruning threshold governing the maximum number of PCs to retain.
+#' @param max.prop.K Upper bound on retained number of PCs as proportion of lowest sample size of input data.
+#' @param drop.failed Determines if failed phenotypes are removed from the output object (default) or retained.
 #' PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
 #' 
 #' @return Returns an environment containing general locus info, the processed locus related sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
-#' If processing fails for specific phenotypes, only the successful phenotypes will be returned.
+#' If processing fails for specific phenotypes, only the successful phenotypes will be returned (unless the drop.failed argument is set to true).
 #' 
 #' \itemize{
 #'     \item id - locus ID
@@ -24,15 +26,18 @@
 #'     \item omega.cor - genetic correlation matrix
 #'     \item N - vector of average N across locus SNPs for each phenotype
 #'     \item phenos - phenotype IDs
-#'     \item binary - boolean vector indicating whether phentoypes are binary
+#'     \item binary - boolean vector indicating whether phenotypes are binary
 #'     \item h2.obs - observed local heritability
 #'     \item h2.latent - estimated local population heritability (only relevant for binary phenotypes; requires population prevalence to be specified in the input info file)
+#'     \item failed - boolean vector indicating whether phenotypes failed during processing (only present if drop.failed=F)
 #' }
 #' 
 #' @export
-process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) { 
-	if (nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a signle locus at a time"); loc=NULL; return(NULL) }
-	if (!(all(c("LOC","CHR","START","STOP") %in% colnames(locus)) | all(c("LOC","SNPS") %in% colnames(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
+
+
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
+	if (is.data.frame(locus) && nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a single locus at a time"); loc=NULL; return(NULL) }  # modified cdl 18/3
+	if (!(all(c("LOC","CHR","START","STOP") %in% names(locus)) | all(c("LOC","SNPS") %in% names(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
 	
 	min.K = max(min.K, 2) # just to make sure it isn't 1, because that leads to some matrix multiplication dimension issues
 	
@@ -40,23 +45,19 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 	loc = new.env(parent=globalenv())
 	loc$id = locus$LOC; loc$chr = locus$CHR; loc$start = locus$START; loc$stop = locus$STOP; loc$snps = locus$SNPS
 	
-	# add phenotype info
-	if (is.null(phenos)) { 
-		loc$phenos = as.character(input$info$phenotype) 
-	} else { 
-		if (any(! phenos %in% as.character(input$info$phenotype))) { 
-			print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% as.character(input$info$phenotype)]), collapse="', '"),"'"); loc=NULL; return(NULL) 
-		} else {
-			loc$phenos = phenos
-		}
-	}
-	loc$binary = input$info[match(loc$phenos, input$info$phenotype),]$binary; names(loc$binary) = loc$phenos
-	loc$P = length(loc$phenos)
-	
+	# add phenotype info (modified + added eQTL check (cdl 18/3))
+	if (is.null(phenos)) phenos = as.character(input$info$phenotype) 
+	if (any(! phenos %in% as.character(input$info$phenotype))) {print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% as.character(input$info$phenotype)]), collapse="', '"),"'"); loc=NULL; return(NULL) }
+	if ("eqtl" %in% names(input$info) && any(input$info$eqtl[match(phenos, input$info$phenotype)]) && class(locus) != "gene") {print("Error: use function process.eqtl.locus when analyzing eQTL input"); loc=NULL; return(NULL)} #still works on eQTL input if eqtl phenotype not actually analysed
+	loc$phenos = phenos; loc$P = length(loc$phenos)
+ 	loc$binary = input$info$binary[match(loc$phenos, input$info$phenotype)]; names(loc$binary) = loc$phenos
+
 	# get locus SNPs
 	if (!is.null(loc$snps)) {
 		# if available, use SNP list
-		loc$snps = tolower(unlist(strsplit(loc$snps, ';')))
+		if (!is.list(loc$snps)) {  # added cdl 18/3
+			loc$snps = tolower(unlist(strsplit(loc$snps, ';')))
+		}
 	} else {
 		# if not, use bim file coordinates
 		loc$snps = tolower(input$ref$bim$snp.name[input$ref$bim$chromosome == loc$chr & input$ref$bim$position >= loc$start & input$ref$bim$position <= loc$stop])
@@ -115,7 +116,22 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }	# if all are NA, set to mean N across all SNPs in sumstats
 		loc.sum[[i]]$N[is.na(loc.sum[[i]]$N)] = loc$N[i]	# use mean imputation any for missing per SNP N 
 	}
-	
+
+	# cap the number of PCs at a proportion of the (lowest) GWAS input sample size (cdl 16/3)
+	if (!is.null(max.prop.K) && !is.na(max.prop.K)) {
+		max.K = floor(max.prop.K * min(loc$N))
+		if (max.K < min.K) max.K = min.K #min.K setting takes precedence if in conflict
+		if (length(keep) > max.K) {
+			keep = keep[1:max.K]
+			Q = Q[,keep]
+			lambda = lambda[keep]
+		}
+	}
+
+	# Check remaining nr of PCs (moved down, cdl 16/3)
+	K.max = length(keep) # K renamed to K.max after updating the fit.logistic() function; K is defined within while loop
+	if (K.max < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
+
 	# Define G/R for binary phenotypes (used by fit.logistic())
 	if (any(loc$binary)) { R = Q[,keep] %*% diag(1/sqrt(lambda[keep])); G = X %*% R } # NOTE: these are further subsetted within the fit.logistic() function if any PCs are dropped, so there is no need to subset again in the while loop
 	
@@ -172,33 +188,45 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99) {
 	# cap any negative h2's at 0
 	loc$h2.obs[loc$h2.obs<0] = 0
 	loc$h2.latent[loc$h2.latent<0] = 0
-	
+
+	# remove h2's if K/N ratio too high (cdl 22/3)
+	thresh.ratio = 0.1
+	if (any(loc$K / loc$N > thresh.ratio)) {
+		loc$h2.obs[loc$K/loc$N > thresh.ratio] = NA
+		loc$h2.latent[loc$K/loc$N > thresh.ratio] = NA
+	}
+
 	# get full omega
 	loc$omega = t(loc$delta)%*%loc$delta / loc$K - loc$sigma
 	loc$omega.cor = suppressWarnings(cov2cor(loc$omega))
-	
-	# check if any phenos have negative sigma or omega
-	neg.var = diag(loc$sigma) < 0 | diag(loc$omega) < 0
-	if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id,". This locus cannot be analysed")); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
-	if (any(neg.var, na.rm=T)) { print(paste0("Warning: Negative variance estimate for phenotype(s) '",paste(loc$phenos[which(neg.var)],collapse="', '"),"' in locus ",loc$id,"; Dropping these as they cannot be analysed")) }
-	
-	# remove all phenotypes that failed (either due to negative variance, N < K, or wsw.inversion problem)
-	failed = neg.var | is.na(neg.var)	# those that failed due to N < K or wsw.inversion will be NA in the neg.var variable
-	if (any(failed)) {
-		if (all(failed)) { print(paste0("Error: Processing of all phenotypes in locus ",loc$id," failed (see preceeding warning messages for details)")); loc=NULL; return(NULL) }
-		
-		for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = loc[[var]][!failed] }	 # vectors
-		
-		loc$delta = as.matrix(loc$delta[,!failed]); colnames(loc$delta) = loc$phenos	# delta
-		
-		for (var in c("sigma","omega","omega.cor")) {   # symmetric matrices
-			loc[[var]] = as.matrix(loc[[var]][!failed,!failed])
-			dimnames(loc[[var]]) = rep(list(loc$phenos),2)	# need to add phenotype IDs again due to as.matrix()
+
+
+	# check if any phenos have negative sigma or omega;
+	neg.var = diag(loc$sigma) < 0 | diag(loc$omega) < 0;
+	failed = neg.var | is.na(neg.var)	#those that failed due to N < K or wsw.inversion will be NA in the neg.var variable
+
+	if (drop.failed) { # cdl 16/3
+		if (all(neg.var, na.rm=T)) { print(paste0("Error: Negative variance estimate for all phenotypes in locus ",loc$id,". This locus cannot be analysed")); loc=NULL; return(NULL) }	# print error if all had negative variance estimate
+		if (any(neg.var, na.rm=T)) { print(paste0("Warning: Negative variance estimate for phenotype(s) '",paste(loc$phenos[which(neg.var)],collapse="', '"),"' in locus ",loc$id,"; Dropping these as they cannot be analysed")) }
+
+		# remove all phenotypes that failed (either due to negative variance, N < K, or wsw.inversion problem)
+		if (any(failed)) {
+			if (all(failed)) { print(paste0("Error: Processing of all phenotypes in locus ",loc$id," failed (see preceeding warning messages for details)")); loc=NULL; return(NULL) }
+
+			for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = loc[[var]][!failed] }	 # vectors
+
+			loc$delta = as.matrix(loc$delta[,!failed]); colnames(loc$delta) = loc$phenos	# delta
+
+			for (var in c("sigma","omega","omega.cor")) {   # symmetric matrices
+				loc[[var]] = as.matrix(loc[[var]][!failed,!failed])
+				dimnames(loc[[var]]) = rep(list(loc$phenos),2)	# need to add phenotype IDs again due to as.matrix()
+			}
 		}
+	} else {
+		loc$failed = failed
 	}
 	return(loc)
 }
-
 
 
 
@@ -282,24 +310,32 @@ process.sumstats = function(input) {
 	
 	# get common SNPs
 	print("...Extracting common SNPs")
-	input$analysis.snps = intersect(input$ref$bim$snp.name, input$sum.stats[[1]]$SNP)	# all SNPs will be ordered according to bim file
-	if (input$P>1) { for (i in 2:input$P) { input$analysis.snps = intersect(input$analysis.snps, input$sum.stats[[i]]$SNP) }}
-	if (length(input$analysis.snps) < 3) { stop("Less than 3 SNPs shared across data sets; make sure you have matching SNP ID formats across sumstats / reference data sets")
-	} else { print(paste("...",length(input$analysis.snps),"SNPs shared across data sets")) }
-	
-	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
-	
-	# subset sumstats to common snps
-	for (i in 1:input$P) {
-		input$sum.stats[[i]] = input$sum.stats[[i]][match(input$analysis.snps, input$sum.stats[[i]]$SNP),]
-		if(!all(input$sum.stats[[i]]$SNP==input$analysis.snps)) { stop("Program Error: sum-stats SNPs do not match the reference after subsetting. Please contact developer.") }
-	}
-	
+	harmonize.snps(input)
+
 	# align SNPs
 	print("...Aligning effect alleles to reference data set")
 	align(input)
 	
 	return(input)
+}
+
+harmonize.snps = function(input, check.index=NULL) {
+	#determine common snps
+	input$analysis.snps = intersect(input$ref$bim$snp.name, input$sum.stats[[1]]$SNP)	# all SNPs will be ordered according to bim file
+	if (input$P>1) {
+		if (is.null(check.index)) check.index = 2:input$P
+		for (i in check.index) { input$analysis.snps = intersect(input$analysis.snps, input$sum.stats[[i]]$SNP) }
+	}
+	if (length(input$analysis.snps) < 3) { stop("Less than 3 SNPs shared across data sets; make sure you have matching SNP ID formats across sumstats / reference data sets")
+	} else { print(paste("...",length(input$analysis.snps),"SNPs shared across data sets")) }
+
+	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
+
+	# subset sumstats to common snps
+	for (i in 1:input$P) {
+		input$sum.stats[[i]] = input$sum.stats[[i]][match(input$analysis.snps, input$sum.stats[[i]]$SNP),]
+		if(!all(input$sum.stats[[i]]$SNP==input$analysis.snps)) { stop("Program Error: sum-stats SNPs do not match the reference after subsetting. Please contact developer.") }
+	}
 }
 
 process.sample.overlap = function(sample.overlap.file, phenos) {
@@ -309,7 +345,7 @@ process.sample.overlap = function(sample.overlap.file, phenos) {
 	return(cov2cor(sample.overlap[idx,idx]))
 }
 
-get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
+get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL, input.dir=NULL) {
 	check.files.exist(c(input.info.file, sample.overlap.file, paste0(ref.prefix, c(".bim",".bed",".fam"))))
 	
 	input = new.env(parent=globalenv())
@@ -317,6 +353,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 	if (!all(c("phenotype","cases","controls","filename") %in% colnames(input$info))) { stop("Please provide an input.info file with headers: phenotype, cases, controls, filename") }  # header check on input file
 	if (is.null(phenos)) { phenos = input$info$phenotype }
 	if (!all(phenos %in% input$info$phenotype)) { stop(paste0("Phenotype(s) not listed in input info file: '", paste0(phenos[!phenos %in% input$info$phenotype], collapse="', '"),"'")) }
+	if (!is.null(input.dir)) input$info$filename = paste0(input.dir, "/", input$info$filename) # added (cdl 17/3)
 	
 	input$info = input$info[match(phenos, input$info$phenotype),]			# match to phenotypes of interest
 	input$info$N = input$info$cases + input$info$controls					# total N column
@@ -340,7 +377,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' phenotype IDs ('phenotype'), N cases ('cases'), N controls ('controls'), sumstats file ('filename').
 #' For continuous phenotypes, the number of controls should be set to 0, while cases can just  be set to 1 (this is only used for computing the case/control ratio, which should be 1 for continuous phenotypes).
 #'
-#' @param sample.overlap.file Name if file with sample overlap information.
+#' @param sample.overlap.file Name of file with sample overlap information.
 #' Can be set to NULL if there is no overlap
 #' 
 #' @param ref.prefix Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)
@@ -348,7 +385,9 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' @param phenos A vector of phenotype IDs can be provided if only a subset of phenotypes are desired
 #' (if NULL, all phenotypes in the input info file will be processed). 
 #' This can be convenient if a subset from a larger number of phenotypes are analysed, as only a single input.info / sample overlap file needs to be created.
-#' 
+#'
+#' @param input.dir Directory containing the files specified in the info file.
+#'
 #' @return An object containing processed input data and related info
 #' \itemize{
 #'     \item info - the processed input info file. Columns added during processing: 
@@ -367,9 +406,9 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' }
 #' 
 #' @export
-process.input = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL) {
+process.input = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL, input.dir=NULL) {
 	print("...Processing input info")
-	input = get.input.info(input.info.file, sample.overlap.file, ref.prefix, phenos)
+	input = get.input.info(input.info.file, sample.overlap.file, ref.prefix, phenos, input.dir)
 	if (all(input$info$binary)) { 
 		print(paste0("...** All phenotypes treated as BINARY ('",paste0(input$info$phenotype,collapse="', '"),"')"))
 	} else if (all(!input$info$binary)) {
@@ -404,4 +443,8 @@ read.loci = function(loc.file) {
 
 check.files.exist = function(infiles) {
 	if (!all(file.exists(infiles))) { stop(paste0("Missing input file(s): '",paste0(infiles[!file.exists(infiles)],collapse=", '"),"'"),". Please ensure correct file names and paths have been provided.") }
+}
+
+check.folders.exist = function(folders) {
+	if (!all(file.exists(folders))) { stop(paste0("Missing folder(s): '",paste0(folders[!file.exists(folders)],collapse=", '"),"'"),". Please ensure correct paths have been provided.") }
 }
