@@ -230,6 +230,74 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 
 
 
+#' Re-process locus to meta-analyse of selected phenotypes
+#'
+#' Will combine all elements of the requested phenotypes using standard inverse variance weighting, allowing them to be analysed as a single phenotype via the  multivariate analysis functions.
+#' Note that the univariate test cannot currently be applied to meta-analysed phenotypes, so please do that beforehand on each phenotype individually.
+#'
+#' @param locus Locus object defined using the \code{\link{process.locus}} function.
+#' @param meta.phenos Phenotypes you want to meta-analyse
+#'
+#' #'
+#' @return This function returns an object just like that \code{\link{process.locus}} function, containing general locus info, the relevant processed sumstats, and info about the input phenotypes.
+#'
+#' \itemize{
+#'     \item id - locus ID
+#'     \item chr/start/stop - locus coordinates
+#'     \item snps - list of locus SNPs
+#'     \item N.snps - number of SNPs
+#'     \item K - number of PCs
+#'     \item delta - PC projected joint SNP effects for each phenotype
+#'     \item sigma - sampling covariance matrix
+#'     \item omega - genetic covariance matrix
+#'     \item omega.cor - genetic correlation matrix
+#'     \item N - vector of average N across locus SNPs for each phenotype
+#'     \item phenos - phenotype IDs
+#'     \item binary - boolean vector indicating whether phentoypes are binary
+#' }
+#'
+#' @export
+meta.analyse.locus = function(locus, meta.phenos) {
+	if (any(! meta.phenos %in% locus$phenos)) { stop(paste0("Phenotype(s) not present in locus object: '", paste0(meta.phenos[! meta.phenos %in% locus$phenos],collapse="', '"),"'"))}
+	if (length(meta.phenos) < 2) { stop("Specify at least two phenotypes") }
+	
+	non.meta = locus$phenos[!locus$phenos %in% meta.phenos]
+	
+	# create new 'meta' locus
+	meta = as.environment(as.list(locus, all.names=T))
+	meta$phenos = c(paste0("meta.",paste(meta.phenos,collapse="-")), non.meta)
+	
+	# get params
+	w = 1/diag(locus$sigma[meta.phenos, meta.phenos])
+	w = as.matrix(w / sum(w))  # this is w.prime in derivs
+	
+	# create new deltas
+	delta.meta = locus$delta[,meta.phenos] %*% w
+	meta$delta = cbind(delta.meta, locus$delta[,non.meta])
+	colnames(meta$delta) = meta$phenos
+	
+	# create omega & sigma
+	for (v in c("omega","sigma")) {
+		v.meta = t(w) %*% locus[[v]][meta.phenos, meta.phenos] %*% w
+		v.meta.R = t(w) %*% locus[[v]][non.meta, meta.phenos]
+		
+		meta[[v]] = rbind(cbind(v.meta, v.meta.R),
+						  cbind(t(v.meta.R), locus[[v]][non.meta, non.meta]))
+		
+		colnames(meta[[v]]) = rownames(meta[[v]]) = meta$phenos
+	}
+	meta$omega.cor = suppressWarnings(cov2cor(meta$omega))
+	
+	# set remaining variables
+	# for now these are all set to NA, which means they cannot be processed to the univariate analysis function
+	for (v in c("binary","N","h2.obs","h2.latent")) {
+		meta[[v]] = c(NA, locus[[v]][non.meta])
+		names(meta[[v]]) = meta$phenos
+	}
+	return(meta)
+}
+
+
 
 
 ### sum-stats read-in and processing functions ###
