@@ -230,7 +230,9 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 
 
 
-### Sum-stats read-in ###
+
+
+### sum-stats read-in and processing functions ###
 format.pvalues = function(input, i, min.pval) {
 	input$sum.stats[[i]]$P = as.numeric(input$sum.stats[[i]]$P) # if p < numerical limits in R, they will be read in as char
 	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P), ]		# remove NA pvalues
@@ -244,8 +246,8 @@ filter.n = function(input, i) {
 
 format.z = function(input, i, min.pval) {
 	input$sum.stats[[i]]$STAT = as.numeric(input$sum.stats[[i]]$STAT)
-	inf.z = which(abs(input$sum.stats[[i]]$STAT) > abs(qnorm(min.pval/2)))
-	input$sum.stats[[i]]$STAT[inf.z] = abs(qnorm(min.pval/2)) * sign(input$sum.stats[[i]]$STAT[inf.z])
+	inf.z = which(abs(input$sum.stats[[i]]$STAT) > abs(qnorm(min.pval/2))) 
+	input$sum.stats[[i]]$STAT[inf.z] = abs(qnorm(min.pval/2)) * sign(input$sum.stats[[i]]$STAT[inf.z]) # remove inf z scores
 }
 
 process.sumstats = function(input) {

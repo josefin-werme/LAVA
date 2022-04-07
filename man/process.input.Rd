@@ -4,14 +4,20 @@
 \alias{process.input}
 \title{Process input}
 \usage{
-process.input(input.info.file, sample.overlap.file, ref.prefix, phenos = NULL)
+process.input(
+  input.info.file,
+  sample.overlap.file,
+  ref.prefix,
+  phenos = NULL,
+  input.dir = NULL
+)
 }
 \arguments{
 \item{input.info.file}{Name of info file containing 
 phenotype IDs ('phenotype'), N cases ('cases'), N controls ('controls'), sumstats file ('filename').
 For continuous phenotypes, the number of controls should be set to 0, while cases can just  be set to 1 (this is only used for computing the case/control ratio, which should be 1 for continuous phenotypes).}
 
-\item{sample.overlap.file}{Name if file with sample overlap information.
+\item{sample.overlap.file}{Name of file with sample overlap information.
 Can be set to NULL if there is no overlap}
 
 \item{ref.prefix}{Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)}
@@ -19,6 +25,8 @@ Can be set to NULL if there is no overlap}
 \item{phenos}{A vector of phenotype IDs can be provided if only a subset of phenotypes are desired
 (if NULL, all phenotypes in the input info file will be processed). 
 This can be convenient if a subset from a larger number of phenotypes are analysed, as only a single input.info / sample overlap file needs to be created.}
+
+\item{input.dir}{Directory containing the files specified in the info file.}
 }
 \value{
 An object containing processed input data and related info
