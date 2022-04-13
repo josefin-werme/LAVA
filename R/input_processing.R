@@ -47,7 +47,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	
 	# add phenotype info (modified + added eQTL check (cdl 18/3))
 	if (is.null(phenos)) phenos = as.character(input$info$phenotype) 
-	if (any(! phenos %in% as.character(input$info$phenotype))) {print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% as.character(input$info$phenotype)]), collapse="', '"),"'"); loc=NULL; return(NULL) }
+	if (any(! phenos %in% as.character(input$info$phenotype))) {print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% as.character(input$info$phenotype)]), collapse="', '","'")); loc=NULL; return(NULL) }
 	if ("eqtl" %in% names(input$info) && any(input$info$eqtl[match(phenos, input$info$phenotype)]) && class(locus) != "gene") {print("Error: use function process.eqtl.locus when analyzing eQTL input"); loc=NULL; return(NULL)} #still works on eQTL input if eqtl phenotype not actually analysed
 	loc$phenos = phenos; loc$P = length(loc$phenos)
  	loc$binary = input$info$binary[match(loc$phenos, input$info$phenotype)]; names(loc$binary) = loc$phenos
