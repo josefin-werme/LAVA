@@ -1,7 +1,7 @@
 #' Process eQTL input
 #'
 #' Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input. See \code\link[LAVA website]{https://ctg.cncr.nl/software/lava}
-#' for preformatted GTEx v8 input files and details on the input file format. 
+#' for preformatted GTEx v8 input files and details on the formatting of the input files.
 #'
 #' @param gwas.input GWAS input object generated using \code{\link{process.input}} (object is modified by function).
 #'
