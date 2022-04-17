@@ -39,6 +39,6 @@ fields are added. Note that if the 'tissue' argument is not set, \code{\link{set
 }
 }
 \description{
-Modifies the GWAS input object, appending eQTL summary statistics and gene annotation to an existing GWAS input. See [LINK]
+Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input. See \code\link[LAVA website]{https://ctg.cncr.nl/software/lava} for preformatted GTEx v8 input files and details on the formatting of the input files.Modifies the GWAS input object, appending eQTL summary statistics and gene annotation to an existing GWAS input. See [LINK]
 for preformatted GTEx v8 input files and details on the input file format.
 }
