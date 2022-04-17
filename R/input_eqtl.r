@@ -1,6 +1,6 @@
 #' Process eQTL input
 #'
-#' Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input. See \code\link[LAVA website]{https://ctg.cncr.nl/software/lava}
+#' Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input. See TEEEEEEEEEEEEESSSSSSSST \code\link[LAVA website]{https://ctg.cncr.nl/software/lava}
 #' for preformatted GTEx v8 input files and details on the input file format. 
 #'
 #' @param gwas.input GWAS input object generated using \code{\link{process.input}} (object is modified by function).
@@ -96,7 +96,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 
 	align(gwas.input, add.index) # this multiplies the dummy constant 1 STAT column by -1 in case of misalignment, storing this in separate DIR column for later use
   gwas.input$sum.stats[[add.index]]$DIR = gwas.input$sum.stats[[add.index]]$STAT
-  gwas.input$sum.stats[[add.index]]$STAT = c(NA)
+  gwas.input$sum.stats[[add.index]]$STAT = NA
 
 	gwas.input$eqtl.tissues = info
 	gwas.input$eqtl.type = type.name
