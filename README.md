@@ -15,7 +15,7 @@ which may be used to filter out non-associated loci. In addition, it can
 model the local genetic relations between multiple phenotypes
 simultaneously using two possible conditional models: partial
 correlation and multiple regression (for more details, see the
-[preprint](https://doi.org/10.1101/2020.12.31.424652)).
+[LAVA paper](https://www.nature.com/articles/s41588-022-01017-y)).
 
 The tutorial will show you how to install and run LAVA using some
 example input data. If you wish, you can inspect the data in the
@@ -43,7 +43,7 @@ install.packages("devtools")
 LAVA can then be installed directly from github
 
 ``` r
-devtools::install_git("https://github.com/josefin-werme/LAVA.git")
+devtools::install_github("https://github.com/josefin-werme/LAVA.git")
 ```
 
 Or by downloading the code (Download Zip under the Code button on

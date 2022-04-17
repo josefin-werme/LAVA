@@ -6,11 +6,12 @@ read.bim.custom = function(bim, as.env=T) {
   df.bim = data.table::fread(bim, data.table=F)
   if (ncol(df.bim) == 6) {
     names(df.bim) <- c("chromosome", "snp.name", "cM", "position", "allele.1", "allele.2")
+    df.bim$snp.name = tolower(df.bim$snp.name) # added cdl 16/3
   } else {
     warning("non-standard .bim file")
   }
   rownames(df.bim) = as.character(df.bim[, 2])
-  
+
   if (as.env) {
     env = new.env(parent=globalenv()) 
     env$bim = df.bim
@@ -23,6 +24,7 @@ read.bim.custom = function(bim, as.env=T) {
 # original code has been commented out, and modifications are indicated with comments
 # if calling this with df.bim=NULL as default, it operates almost the same as the original read.plink() function from the snpStats package
 # main difference is that it now does the rownames(df.bim) bit before potentially subsetting
+#matching on select.snps is case-insensitive, and SNP names from read.bim.custom are returned lower case
 read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9"), sep = ".", select.subjects = NULL, select.snps = NULL) {
     lb <- nchar(bed)
     ext <- substr(bed, lb - 3, lb)
@@ -46,7 +48,7 @@ read.plink.custom = function (bed, bim, fam, df.bim=NULL, na.strings = c("0","-9
 #   snps <- as.character(df.bim[, 2])
     if (!is.null(select.snps)) {
         if (is.character(select.snps)) {
-            select.snps <- match(select.snps, snps)
+            select.snps <- match(tolower(select.snps), snps) # added tolower (cdl 16/3)
             if (any(is.na(select.snps))) stop("unrecognised snp selected")
         } else if (is.numeric(select.snps)) {
             tot.snps = ifelse(is.environment(df.bim), nrow(df.bim$bim), nrow(df.bim)) # added 

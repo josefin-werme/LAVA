@@ -38,19 +38,23 @@ com.pair = function(pair1, pair2) {
 	return(res)
 }
 
-align = function(input) {
+align = function(input, check.index=NULL) {
 	bim.snp.idx = input$ref$bim$snp.name %in% input$analysis.snps 										# index of analysis SNPs in orig bim file (these are ordered acc to the bim file)
 	ref.map = map.alleles(input$ref$bim$allele.1[bim.snp.idx], input$ref$bim$allele.2[bim.snp.idx])		# allele map for reference data
-	remove = NULL; input$unalignable.snps=NULL
+  remove = NULL;
+	if (is.null(check.index)) { #added check.index code (cdl 17/3)
+		input$unalignable.snps = NULL
+		check.index = 1:length(input$sum.stats)
+	}
 	
-	for (i in 1:length(input$sum.stats)) {
+	for (i in check.index) {
 		sum.map = map.alleles(input$sum.stats[[i]]$A1, input$sum.stats[[i]]$A2)				# allele map for sumstats
 		input$sum.stats[[i]]$STAT = input$sum.stats[[i]]$STAT * com.pair(ref.map, sum.map)	# flip sign where relevant
 		if (any(is.na(input$sum.stats[[i]]$STAT))) { remove = c(remove, which(is.na(input$sum.stats[[i]]$STAT))) }
 	}
 	# remove any alleles that couldn't be matched/flipped
 	if (length(remove)>0) {
-		input$unalignable.snps = input$analysis.snps[unique(remove)]	# store which SNPs couldnt be aligned
+		input$unalignable.snps = unique(c(input$unalignable.snps, input$analysis.snps[unique(remove)]))	# store which SNPs couldnt be aligned (modified cdl 17/3)
 		input$analysis.snps = input$analysis.snps[-unique(remove)]		# remove unalignable SNPs from reference data SNP list
 		for (i in 1:length(input$sum.stats)) {
 			input$sum.stats[[i]] = input$sum.stats[[i]][-unique(remove),]	# remove unalignable SNPs from sumstats
