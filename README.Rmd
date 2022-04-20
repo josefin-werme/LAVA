@@ -344,13 +344,10 @@ library(LAVA)
 loci = read.loci(loc.file); n.loc = nrow(loci)
 input = process.input(info.file, sample.overlap.file, ref.prefix, phenos)
 
-### Set univariate pvalue threshold
-univ.p.threshold = ##[set]##
-
-### Analyse
 print(paste("Starting LAVA analysis for",n.loc,"loci"))
 progress = ceiling(quantile(1:n.loc, seq(.05,1,.05)))   # (if you want to print the progress)
 
+### Analyse
 u=b=list()
 for (i in 1:n.loc) {
         if (i %in% progress) print(paste("..",names(progress[which(progress==i)])))     # (printing progress)
@@ -362,7 +359,7 @@ for (i in 1:n.loc) {
                 loc.info = data.frame(locus = locus$id, chr = locus$chr, start = locus$start, stop = locus$stop, n.snps = locus$n.snps, n.pcs = locus$K)
                 
                 # run the univariate and bivariate tests
-                loc.out = run.univ.bivar(locus, univ.thresh = univ.p.threshold)
+                loc.out = run.univ.bivar(locus, univ.thresh=1e-4)
                 u[[i]] = cbind(loc.info, loc.out$univ)
                 if(!is.null(loc.out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
         }
