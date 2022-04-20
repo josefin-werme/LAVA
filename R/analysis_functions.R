@@ -22,8 +22,14 @@
 #' @export
 #' 
 run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }}
+	if (is.null(phenos)) { 
+		phenos = locus$phenos 
+	} else { 
+		phenos = as.character(phenos)
+		if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }
+	}
 	if (!is.null(target)) {
+		target = as.character(target)
 		if (length(target) > 1) { print(paste0("Error: More than one target phenotype specified")); return(NULL) }
 		if (! target %in% locus$phenos) { print(paste0("Error: Invalid target phenotype specified: '", target,"'")); return(NULL) }
 		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
@@ -44,7 +50,12 @@ run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap
 
 # Univariate p-values
 univariate.test = function(locus, phenos=NULL) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }}
+	if (is.null(phenos)) { 
+		phenos = locus$phenos 
+	} else { 
+		phenos = as.character(phenos)
+		if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }
+	}
 	P = length(phenos)
 	
 	p = rep(NA, P)
@@ -74,7 +85,12 @@ univariate.test = function(locus, phenos=NULL) {
 #' }
 #' @export
 run.univ = function(locus, phenos=NULL, var=F) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) } }
+	if (is.null(phenos)) { 
+		phenos = locus$phenos 
+	} else {
+		phenos = as.character(phenos)
+		if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }
+	}
 	
 	univ = data.frame(phen = phenos)
 	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
@@ -113,8 +129,14 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #' }
 #' @export
 run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }}
-	if (!is.null(target)) { 
+	if (is.null(phenos)) { 
+		phenos = locus$phenos
+	} else {
+		phenos = as.character(phenos)
+		if (any(! phenos %in% locus$phenos)) { print(paste0("Error: Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")); return(NULL) }
+	}
+	if (!is.null(target)) {
+		target = as.character(target)
 		if (length(target) > 1) { print(paste0("Error: More than one target phenotype specified")); return(NULL) }
 		if (! target %in% locus$phenos) { print(paste0("Error: Invalid target phenotype specified: '", target,"'")); return(NULL) }
 		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
@@ -180,14 +202,23 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 #' @export
 run.multireg = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), only.full.model=F, p.values=T, CIs=T, param.lim=1.5, suppress.message=F) {
 	if (is.null(target)) { stop("Please specify an outcome phenotype using the 'target' argument") }
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) } }
+	target = as.character(target)
+	
+	if (is.null(phenos)) { 
+		phenos = locus$phenos 
+	} else {
+		phenos = as.character(phenos)
+		if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) }
+	}
 	if (! all(target %in% locus$phenos)) { print(paste0("Error: Invalid target phenotype specified: '", paste0(target[! target %in% locus$phenos], collapse="', '"),"'")); return(NULL) }
+	
 	phenos = unique(c(target, phenos))
 	P = length(phenos)
 	Y = target; X = phenos[! phenos %in% target]
 	
-	if (P < 3) { print(paste0("Error: Less than 3 phenotypes provided for multiple regression analysis in locus: ",locus$id)); return(NULL) }
-	
+	if (length(Y) > 1) { print("Error: More than one target phenotype provided"); return(NULL) }
+	if (length(X) < 2) { print("Error: Less than two predictor phenotypes available"); return(NULL) }
+
 	if (!suppress.message) print(paste0("~ Running multiple regression for outcome '",Y,"', with predictors '",paste(X,collapse="', '"),"'"))
 	
 	cond = list()
@@ -265,7 +296,13 @@ run.multireg = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), o
 #' }
 #' @export
 run.pcor = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, max.r2=.95, param.lim=1.25) {
-	if (is.null(phenos)) { phenos = locus$phenos } else { if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) } }
+	if (is.null(phenos)) { 
+		phenos = locus$phenos 
+	} else {
+		phenos = as.character(phenos)
+		if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) }
+	}
+	target = as.character(target)
 	if (length(target)!=2) { stop(paste0("Exactly two phenotype IDs must be provided as the target")) }
 	if (! all(target %in% locus$phenos)) { stop(paste0("Invalid target phenotype specified: '", paste0(target[! target %in% locus$phenos], collapse="', '"),"'")) }
 	phenos = unique(c(target, phenos)); P = length(phenos); if (P < 3) { stop(paste0("Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)) }
