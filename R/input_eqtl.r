@@ -247,7 +247,7 @@ set.chromosomes = function(gwas.input, chromosomes) {
 #'
 #' @export
 process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
-	if (!all(c("eqtl.genes", "eqtl.tissues", "eqtl.type") %in% names(gwas.input)) || !any(gwas.input$info$var.type == gwas.input$eqtl.type)) {print("Error: gwas.input is not configured for eQTL analysis"); return(invisible(NULL))}
+	if (!all(c("eqtl.genes", "eqtl.tissues", "eqtl.type") %in% names(eqtl.input)) || !any(eqtl.input$info$var.type == eqtl.input$eqtl.type)) {print("Error: eqtl.input is not configured for eQTL analysis"); return(invisible(NULL))}
 	if (is.null(eqtl.input$current.tissue)) {print("Error: no tissue initialized; run set.tissue function to load tissue data"); return(NULL)}
 
 	if (is.character(gene)) {
