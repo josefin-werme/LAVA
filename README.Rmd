@@ -1,6 +1,6 @@
 ---
 title: "LAVA TUTORIAL"
-author: "Josefin Wermen (j.werme@vu.nl), CTG Lab, VU Amsterdam"
+author: "Contact: Josefin Werme (j.werme@vu.nl), Christiaan de Leeuw (c.a.de.leeuw@vu.nl), CTG Lab, VU Amsterdam"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::github_document:
