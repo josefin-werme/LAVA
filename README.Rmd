@@ -1,8 +1,10 @@
 ---
 title: "LAVA TUTORIAL"
-author: "Josefin Werme, CTG Lab, VU Amsterdam"
+author: "Josefin Werme (j.werme@vu.nl), Christiaan de Leeuw (c.a.de.leeuw@vu.nl), CTG Lab, VU Amsterdam"
 date: "`r Sys.Date()`"
-output: rmarkdown::github_document
+output: 
+  rmarkdown::github_document:
+    math_method: NULL
 vignette: >
   %\VignetteIndexEntry{tutorial}
   %\VignetteEngine{knitr::rmarkdown}
@@ -11,7 +13,7 @@ vignette: >
 
 This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
 
-LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [preprint](https://doi.org/10.1101/2020.12.31.424652)).
+LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [LAVA paper](https://www.nature.com/articles/s41588-022-01017-y)).
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
@@ -42,7 +44,7 @@ install.packages("devtools")
 LAVA can then be installed directly from github
 
 ```{r, eval=F}
-devtools::install_git("https://github.com/josefin-werme/LAVA.git")
+devtools::install_github("https://github.com/josefin-werme/LAVA.git")
 ```
 
 Or by downloading the code (Download Zip under the Code button on GitHub), unzipping and installing from disk
@@ -344,10 +346,13 @@ library(LAVA)
 loci = read.loci(loc.file); n.loc = nrow(loci)
 input = process.input(info.file, sample.overlap.file, ref.prefix, phenos)
 
+### Set univariate pvalue threshold
+univ.p.thresh = #[SET]
+
+### Analyse
 print(paste("Starting LAVA analysis for",n.loc,"loci"))
 progress = ceiling(quantile(1:n.loc, seq(.05,1,.05)))   # (if you want to print the progress)
 
-### Analyse
 u=b=list()
 for (i in 1:n.loc) {
         if (i %in% progress) print(paste("..",names(progress[which(progress==i)])))     # (printing progress)
@@ -359,7 +364,7 @@ for (i in 1:n.loc) {
                 loc.info = data.frame(locus = locus$id, chr = locus$chr, start = locus$start, stop = locus$stop, n.snps = locus$n.snps, n.pcs = locus$K)
                 
                 # run the univariate and bivariate tests
-                loc.out = run.univ.bivar(locus, univ.thresh=1e-4)
+                loc.out = run.univ.bivar(locus, univ.thresh = univ.p.thresh)
                 u[[i]] = cbind(loc.info, loc.out$univ)
                 if(!is.null(loc.out$bivar)) b[[i]] = cbind(loc.info, loc.out$bivar)
         }
