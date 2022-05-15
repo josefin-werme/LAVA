@@ -1,6 +1,6 @@
 Package: LAVA
 Title: Local Analysis of [co]Variant Association
-Version: 0.1.0
+Version: 0.1.1
 Authors@R: c(person("Josefin", "Werme", email = "j.werme@vu.nl", role = c("aut", "cre")), person("Christiaan", "de Leeuw", email = "c.a.de.leeuw@vu.nl", role = c("aut")))
 Description: A tool for bivariate and multivariate local genetic correlation analysis. 
 Depends: R (>= 3.5.0)
