@@ -1,24 +1,37 @@
 ### Joint logistic model for input processing of binary phenotypes ###
-fit.logistic = function(G, X, R, N.orig, case.prop, snp.stat, snp.N=NULL, n.iter=25, svar.thresh=1.75, phen.id, loc.id, dropped=c()) {
+fit.logistic = function(G, X, R, N.orig, case.prop, snp.stat, snp.N=NULL, n.iter=25, svar.thresh=1.75, phen.id, loc.id, dropped=c(), truncate=Inf, truncate.min=25) { #NB: update fit.logistic call if changing arguments
 	K = dim(G)[2]; K.block = dim(X)[2]; N.ref = dim(G)[1];
 	N1 = case.prop * N.orig; N.ratio = N.ref/N.orig
-	
+
 	if (is.null(snp.N)) snp.N = rep(N.orig, K.block)
+	if (is.finite(truncate)) {
+		snp.stat[snp.stat > truncate] = truncate
+ 		snp.stat[snp.stat < -truncate] = -truncate
+	}
+
 	beta.marg = matrix(NA, nrow=K.block, ncol=2) # third column stores a boolean indicator about the inferred scaling of the SNP (standardized vs unstandardized), fourth column stores error value
 	for (i in 1:K.block) beta.marg[i,] = find.beta(X[,i], case.prop*snp.N[i], snp.N[i], snp.stat[i]) #reconstruct marginal model b0 and b1 for each SNP
 	wty0 = N1*N.ratio; wty1 = get.wty(X, R, beta.marg) #adding the first for the model intercept, wty0 = t(1) %*% Y = sum(Y) = N1
-	
+
 	comp.use = which(!(1:K %in% dropped))
 	while (length(comp.use) > 1) { # shouldn't get anywhere near 1 (unless locus is tiny to begin with I suppose), but just to guarantee the loop ends; K is rechecked against min.K in the calling locus.info function
 		W = cbind(1, G[,comp.use])
 		wty = c(wty0, wty1[comp.use])
-		
+
 		beta = c(log(N1/(N.orig-N1)), rep(0, length(comp.use))) # set starting values to null model for now
 		for (i in 1:n.iter) {
 			mu = 1 / (1+exp(-W%*%beta))
 			s = as.numeric(mu * (1-mu))
 			wsw.inv = try(solve(t(W) %*% diag(s) %*% W),silent=T)	# going to just assume this is invertible, but since cor(W) = I it would be very strange if it weren't
-			if (class(wsw.inv)[1]=="try-error") { return(NA) } 
+			if (class(wsw.inv)[1]=="try-error") {
+				truncate = ifelse(is.finite(truncate), truncate - 5, 35)
+				if (truncate >= truncate.min && any(abs(snp.stat) > truncate)) {
+			    print(paste0("Warning: multiple logistic regression model for phenotype '",phen.id,"' in locus ",loc.id," failed to converge (inversion error); retrying with SNP test statistic truncation at Z = +/- ", truncate));
+					return(fit.logistic(G, X, R, N.orig, case.prop, snp.stat, snp.N, n.iter, svar.thresh, phen.id, loc.id, dropped, truncate, truncate.min))
+				} else {
+					return(NA)
+				}
+			}
 			beta = beta + wsw.inv %*% (wty - t(W) %*% mu)
 		}
 		V = diag(wsw.inv)[-1]					# vector of sampling variances (excluding intercept)
@@ -26,11 +39,11 @@ fit.logistic = function(G, X, R, N.orig, case.prop, snp.stat, snp.N=NULL, n.iter
 		if (svar.ratio < svar.thresh) break 	# if above threshold, drop the PC with highest sampling variance and rerun
 		comp.use = comp.use[-which.max(V)]
 	}
-	
+
 	# h2
 	var.Y = case.prop*(1-case.prop) / (N.orig / (N.orig - 1))
 	var.Wb = sum(wty1[comp.use]^2) / ((N.orig-1)*N.ratio)^2
-	
+
 	return(
 		list(
 			beta=beta[-1,],
