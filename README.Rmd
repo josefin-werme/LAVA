@@ -376,3 +376,5 @@ write.table(do.call(rbind,b), paste0(out.fname,".bivar.lava"), row.names=F,quote
 
 print(paste0("Done! Analysis output written to ",out.fname,".*.lava"))
 ```
+
+**For more elaborate example scripts intended for whole genome bivariate local rg analyses on a SLURM cluster (which also parallelise across loci), please see the cluster_setup/scripts folder here: <https://surfdrive.surf.nl/files/index.php/s/rtmNm8YZERGwl7f>**
