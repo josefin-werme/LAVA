@@ -165,7 +165,7 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 		if (p.values) { bivar$p[i] = signif(integral.p(bivariate.integral, K = locus$K, omega = locus$omega[pairs[i,],pairs[i,]], sigma = locus$sigma[pairs[i,],pairs[i,]], adap.thresh=adap.thresh), 6) }
 	}
 	# filter any estimates that are too far out of bounds
-	bivar = filter.params(data = bivar, locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim)	# first param in data set must be gamma/rho; params argument just needs to list those that will be set to NA if rho is too far out of bounds
+	bivar = filter.params(data = bivar, locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim, label="correlation")	# first param in data set must be gamma/rho; params argument just needs to list those that will be set to NA if rho is too far out of bounds
 	# cap out of bounds values (CI's are already capped)
 	for (p in params) { bivar[[p]] = cap(bivar[[p]], lim=c(ifelse(p=="r2", 0, -1), 1)) }	# capping rhos at -1/1, and r2s at 0/1
 	colnames(bivar)[which(colnames(bivar)=="coef")] = "rho"
@@ -254,7 +254,7 @@ run.multireg = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), o
 				cond[[j]][[k]]$p = signif(pvals, 6)
 			}
 			# filter estimates that are too far out of bounds 
-			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T) # first param must be gamma/rho
+			cond[[j]][[k]] = filter.params(data = cond[[j]][[k]], locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim, multreg=T, label="regression") # first param must be gamma/rho
 			
 			# cap r2 to 0 / 1 (CI's are already capped)
 			cond[[j]][[k]]$r2 = cap(cond[[j]][[k]]$r2, lim=c(0,1))
@@ -303,7 +303,7 @@ run.pcor = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.val
 		if (any(! phenos %in% locus$phenos)) { stop(paste0("Invalid phenotype ID(s) provided: '",paste0(phenos[! phenos %in% locus$phenos], collapse="', '"),"'")) }
 	}
 	target = as.character(target)
-	if (length(target)!=2) { stop(paste0("Exactly two phenotype IDs must be provided as the target")) }
+	if (length(target) != 2 || target[1] == target[2]) { stop(paste0("Exactly two distinct phenotype IDs must be provided as the target")) }
 	if (! all(target %in% locus$phenos)) { stop(paste0("Invalid target phenotype specified: '", paste0(target[! target %in% locus$phenos], collapse="', '"),"'")) }
 	phenos = unique(c(target, phenos)); P = length(phenos); if (P < 3) { stop(paste0("Less than 3 phenotypes provided for partial correlation analysis in locus: ",locus$id)) }
 	
@@ -324,23 +324,31 @@ run.pcor = function(locus, target, phenos=NULL, adap.thresh=c(1e-4, 1e-6), p.val
 		}
 	}
 	out = data.frame(phen1 = phenos[x], phen2 = phenos[y], z = paste(phenos[z],collapse=";"), r2.phen1_z = r2$x, r2.phen2_z = r2$y, pcor = NA, ci.lower = NA, ci.upper=NA, p = NA)
-	out$pcor = partial.cor(locus$omega[phenos,phenos], x, y, z)
-	
-	if (CIs) {
-		ci = ci.pcor(K = locus$K, xy.index = c(x,y), z.index = z, omega = locus$omega[phenos,phenos], sigma = locus$sigma[phenos,phenos])
-		out$ci.lower = ci[2]; out$ci.upper = ci[3]
+	if (!any(is.na(r2))) {
+		out$pcor = partial.cor(locus$omega[phenos,phenos], x, y, z)
+	  if (!is.na(out$pcor)) {
+			if (CIs) {
+				ci = ci.pcor(K = locus$K, xy.index = c(x,y), z.index = z, omega = locus$omega[phenos,phenos], sigma = locus$sigma[phenos,phenos])
+				out$ci.lower = ci[2]; out$ci.upper = ci[3]
+			}
+
+			# if r2 is < max.r2, proceed with p-values
+			if (p.values) {
+				if (all(out[c("r2.phen1_z","r2.phen2_z")] < max.r2)) {
+					out$p = integral.p(pcov.integral, K = locus$K, omega = locus$omega[phenos,phenos], sigma = locus$sigma[phenos,phenos], adap.thresh = adap.thresh)
+				} else {
+					message("Warning: marginal r2 values exceed max.r2 parameter (max.r2 = ", max.r2,") for phenotype(s) ", phenos[c(x,y)][out[c("r2.phen1_z","r2.phen2_z")] >= max.r2], " in locus ",locus$id, ", cannot compute p-value")
+				}
+			}
+		} else {
+			pvars = c(partial.var(locus$omega[phenos,phenos], x, z), partial.var(locus$omega[phenos,phenos], y, z))
+			message("Warning: partial variances are negative for phenotype(s) ", phenos[c(x,y)][pvars <= 0], " in locus ",locus$id, ", cannot compute partial correlation")
+		}
+		# filter any values that are too far out of bounds
+		params = c("pcor","ci.lower","ci.upper")
+		out = filter.params(data = out, locus.id = locus$id, params = params, param.lim = param.lim, label="partial correlation") # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
+		out$pcor = cap(out$pcor) # cap the pcor at -1/1 (CIs are capped already)
 	}
-	
-	# if r2 is < max.r2, proceed with p-values
-	if (all(out[c("r2.phen1_z","r2.phen2_z")] < max.r2) & p.values) {
-		out$p = integral.p(pcov.integral, K = locus$K, omega = locus$omega[phenos,phenos], sigma = locus$sigma[phenos,phenos], adap.thresh = adap.thresh)
-	}
-	
-	# filter any values that are too far out of bounds
-	params = c("pcor","ci.lower","ci.upper")
-	out = filter.params(data = out, locus.id = locus$id, params = params, param.lim = param.lim) # params just needs to list all params that will be set to NA if rho / gamma is too far out of bounds; first param must be gamma/rho
-	out$pcor = cap(out$pcor) # cap the pcor at -1/1 (CIs are capped already)
-	
 	out[,! colnames(out) %in% c("phen1","phen2","z")] = as.data.frame(lapply(out[,! colnames(out) %in% c("phen1","phen2","z")], signif, 6))
 	return(out)
 }
@@ -367,14 +375,14 @@ estimate.params = function(locus, phenos=NULL) {
 
 
 # remove estimates that are excessively out of bounds
-filter.params = function(data, locus.id, params, param.lim=1.25, multreg=F) {	
+filter.params = function(data, locus.id, params, param.lim=1.25, multreg=F, label="") {
 	out.of.bounds = abs(data[params[1]]) > abs(param.lim)			# assumes first param is gamma/rho
 	
 	if (any(out.of.bounds)) {
 		# get phenotype colnames
 		if (!multreg) { phen.cols = c("phen1","phen2") } else { phen.cols = c("predictors","outcome") }
 		# print warning
-		message("Warning: Estimates too far out of bounds (+-",param.lim,") for phenotype(s) ",
+		message("Warning: ", if (label != "") paste0(label, " "), "estimates too far out of bounds (+-",param.lim,") for phenotype(s) ",
 				paste0(paste0(data[phen.cols[1]][out.of.bounds]," ~ ",data[phen.cols[2]][out.of.bounds]," (",signif(data[params[1]][out.of.bounds],4),")"),collapse=", "),
 				" in locus ",locus.id,". Values will be set to NA. To change this threshold, modify the 'param.lim' argument")
 		# set to NA
