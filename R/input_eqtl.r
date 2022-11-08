@@ -1,11 +1,10 @@
-#' Process eQTL input
+#' Load eQTL input from preprocessed input files
 #'
-#' Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input. See \code\link[LAVA website]{https://ctg.cncr.nl/software/lava}
-#' for preformatted GTEx v8 input files and details on the formatting of the input files.
+#' Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input from preprocessed GTEx v8 input files (see \code\link[LAVA website]{https://ctg.cncr.nl/software/lava}).
 #'
 #' @param gwas.input GWAS input object generated using \code{\link{process.input}} (object is modified by function).
 #'
-#' @param eqtl.folder Folder containing the eQTL input files (format described in link above).
+#' @param eqtl.folder Folder containing the preprocessed eQTL input files.
 #'
 #' @param file.prefix Prefix of primary input files.
 #'
@@ -13,7 +12,7 @@
 #' the \code{\link{set.tissue}} function after running process.eqtl.input().
 #'
 #' @param chromosomes Specifies which chromosomes to load the annotation data for (loading all chromosomes may be time-consuming).
-#' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers (the X chromosome can be specified as 'X' or 23).
+#' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).
 #'
 #' @param is.sqtl Set to true if input consists of sQTL rather than eQTL summary statistics.
 #'
@@ -31,10 +30,12 @@
 #'
 #' @export
 process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "gtex_sqtl_v8", "gtex_v8"), tissue=NULL, chromosomes="all", is.sqtl=F) {
-	print("...Processing eQTL input info")
+	print("...Processing eQTL input info (preprocessed input)")
 
 	if (any(gwas.input$info$phenotype == "eqtl")) {print("Error: GWAS input already contains a phenotype 'eqtl'"); return(invisible(NULL))}
 	if (any(gwas.input$info$phenotype == "sqtl")) {print("Error: GWAS input already contains a phenotype 'sqtl'"); return(invisible(NULL))}
+
+	gwas.input$eqtl.preprocessed = T
 
 	# check main files
 	check.folders.exist(c(eqtl.folder, paste0(eqtl.folder, "/annot")))
@@ -108,6 +109,68 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 }
 
 
+#' Process eQTL input from text input files
+#'
+#' Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input from plain-text input files. Input files should follow the same format
+#' as summary statistics input files for other phenotypes, with an additional column GENE to indicate which gene the association results on each line belong to. Input files must be provided separately
+#' per chromosome.
+#'
+#' @param gwas.input GWAS input object generated using \code{\link{process.input}} (object is modified by function).
+#'
+#' @param eqtl.file.spec File name specifier for eQTL summary statistics input files, with a placeholder [CHR] to indicate the chromosome number in the file name; eg. "my_folder/eqtl.chr[CHR].stats"
+#'
+#' @param chromosomes Specifies which chromosomes to load the data for (loading all chromosomes may be time-consuming).
+#' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).
+#'
+#' @param sample.size If set, used as sample size value for each SNP in the input files instead of N column.
+#'
+#' @return No return value, the gwas.input argument is modified in place. An 'eqtl' phenotype is added into the existing gwas.input structure, and the following
+#' fields are added to gwas.input.
+#' \itemize{
+#'     \item current.chromosomes - list of currently loaded chromosomes
+#'     \item current.genes - vector of available genes
+#'     \item current.stats - summary statistics for all loaded genes
+#' }
+#'
+#' @export
+process.eqtl.text.input = function(gwas.input, eqtl.file.spec, chromosomes="all", sample.size=NULL) {
+	print("...Processing eQTL input info (text input)")
+
+	if (any(gwas.input$info$phenotype == "eqtl")) {print("Error: GWAS input already contains a phenotype 'eqtl'"); return(invisible(NULL))}
+	if (any(gwas.input$info$phenotype == "sqtl")) {print("Error: GWAS input already contains a phenotype 'sqtl'"); return(invisible(NULL))}
+
+	gwas.input$eqtl.preprocessed = F
+
+	if (!grepl("[CHR]", eqtl.file.spec, fixed=T)) {print("Error: argument 'eqtl.file.spec' does not contain [CHR] placeholder token"); return(invisible(NULL))}
+	gwas.input$eqtl.file.specifier = eqtl.file.spec
+
+	if (!is.null(sample.size) && !(is.numeric(sample.size) && is.finite(sample.size) && sample.size > 0)) {print("Error: argument 'sample.size' is negative or not a number"); return(invisible(NULL))}
+	gwas.input$eqtl.N = sample.size
+
+	# insert eQTL as dummy phenotype into
+	type.name = "eqtl"
+	gwas.input$P = gwas.input$P + 1; add.index = gwas.input$P
+	gwas.input$info = rbind(gwas.input$info, NA)
+	gwas.input$info$phenotype[add.index] = type.name
+	gwas.input$info$binary[add.index] = FALSE
+	gwas.input$info$var.type = ""
+	gwas.input$info$var.type[1:gwas.input$P == add.index] = type.name
+
+	if (!is.null(gwas.input$sample.overlap)) {
+		gwas.input$sample.overlap = cbind(rbind(gwas.input$sample.overlap, 0), 0)
+		gwas.input$sample.overlap[add.index,add.index] = 1
+	}
+
+	gwas.input$eqtl.type = type.name
+
+	# create dummy sum.stats data.frame
+	gwas.input$sum.stats[[type.name]] = data.frame(SNP=gwas.input$sum.stats[[1]]$SNP, STAT=NA, N=NA, stringsAsFactors=F)
+
+	set.chromosomes(gwas.input, chromosomes);
+}
+
+
+
 #' Initialize specific tissue for eQTL input object
 #'
 #' Modifies the eQTL input object prepared by the process.eqtl.input() function, loading and initializing summary statistics for the specified tissue. Removes data loaded
@@ -127,7 +190,8 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 #' @export
 set.tissue = function(gwas.input, tissue) {
 	print(paste0("...Loading tissue '", tissue, "'"))
-	if (!all(c("eqtl.genes", "eqtl.tissues", "eqtl.type") %in% names(gwas.input)) || !any(gwas.input$info$var.type == gwas.input$eqtl.type)) {print("Error: gwas.input is not configured for eQTL analysis"); return(invisible(NULL))}
+	if (!is.null(gwas.input$eqtl.preprocessed) && !gwas.input$eqtl.preprocessed) {print("Error: eQTL data loaded into gwas.input does not support changing tissues"); return(invisible(NULL))}
+	if (!all(c("eqtl.genes", "eqtl.type") %in% names(gwas.input)) || !any(gwas.input$info$var.type == gwas.input$eqtl.type)) {print("Error: gwas.input is not configured for eQTL analysis"); return(invisible(NULL))}
 	if (!tissue %in% gwas.input$eqtl.tissues$tissue) {print(paste0("Error: tissue '", tissue, "' is not available in input")); return(invisible(NULL))}
 	if (!is.null(gwas.input$current.tissue) && gwas.input$current.tissue == tissue) {print(paste0("Tissue '", tissue, "' already loaded")); return(invisible(NULL))}
 
@@ -157,10 +221,10 @@ set.tissue = function(gwas.input, tissue) {
 #'
 #' Load the eQTL gene annotation for the specified chromosomes into the gwas.input object. Previously loaded gene annotation is replaced
 #'
-#' @param gwas.input GWAS input object preprocessed using \code{\link{process.eqtl.input}} (object is modified by function).
+#' @param gwas.input GWAS input object loaded using \code{\link{process.eqtl.input}} or \code{\link{process.eqtl.text.input}} (object is modified by function).
 #'
 #' @param chromosomes Specifies which chromosomes to load the annotation data for (loading all chromosomes may be time-consuming).
-#' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers (the X chromosome can be specified as 'X' or 23).
+#' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).
 #'
 #' @return No return value, the gwas.input argument is modified in place. The following fields are changed
 #' \itemize{
@@ -171,7 +235,7 @@ set.tissue = function(gwas.input, tissue) {
 #'
 #' @export
 set.chromosomes = function(gwas.input, chromosomes) {
-	if (is.null(gwas.input$eqtl.files$annot.prefix)) {print("Error: gwas.input is not configured for eQTL analysis"); return(invisible(NULL))}
+	if (is.null(gwas.input$eqtl.preprocessed)) {print("Error: gwas.input is not configured for eQTL analysis"); return(invisible(NULL))}
 
   if (is.null(chromosomes) || chromosomes[1] == "all") {
 		chromosomes = c(1:22, "X")
@@ -179,34 +243,72 @@ set.chromosomes = function(gwas.input, chromosomes) {
 		chromosomes = 1:22
 	} else {
 		chr.all = c(1:22, "X")
+		chromosomes[chromosomes %in% c(23, "x")] = "X"
 		if (any(!(chromosomes %in% chr.all))) {print(paste0("Error: chromosome codes not recognized: ", paste0(chromosomes[!(chromosomes %in% chr.all)], collapse=", "))); return(invisible(NULL))}
 		chromosomes = chr.all[chr.all %in% chromosomes]
 	}
 	chromosomes = as.character(chromosomes)
 
-	file.names = paste0(gwas.input$eqtl.files$annot.prefix, ".chr", chromosomes, ".genes.annot.gz")
-	check.files.exist(file.names)
+	if (gwas.input$eqtl.preprocessed) {
+		file.names = paste0(gwas.input$eqtl.files$annot.prefix, ".chr", chromosomes, ".genes.annot.gz")
+		check.files.exist(file.names)
 
-	genes = NULL
-	for (i in seq_along(chromosomes)) {
-		annot = strsplit(scan(file.names[i], what="", sep="\n", quiet=TRUE), " ")
-		if (!all(sapply(annot, length) == 2)) {print(paste0("Error: file '", file.names[i], "' is improperly formatted")); return(invisible(NULL))}
-		genes = rbind(
-  		genes,
-			data.frame(
-				name=sapply(annot, head, 1),
-				chr=chromosomes[i],
-				snps=I(lapply(annot, tail, 1)), #keep this as list, replaced by vector entries later
-				processed=rep(F,length(annot)),
-				stringsAsFactors=F
+		genes = NULL
+		for (i in seq_along(chromosomes)) {
+			annot = strsplit(scan(file.names[i], what="", sep="\n", quiet=TRUE), " ")
+			if (!all(sapply(annot, length) == 2)) {print(paste0("Error: file '", file.names[i], "' is improperly formatted")); return(invisible(NULL))}
+			genes = rbind(
+	  		genes,
+				data.frame(
+					name=sapply(annot, head, 1),
+					chr=chromosomes[i],
+					snps=I(lapply(annot, tail, 1)), #keep this as list, replaced by vector entries later
+					processed=rep(F,length(annot)),
+					stringsAsFactors=F
+				)
 			)
-		)
+		}
+
+    if (!is.null(gwas.input$current.tissue)) gwas.input$current.genes = gwas.input$current.stats$label[gwas.input$current.stats$gene.name %in% genes$name] #reset list of available genes
+
+	} else {
+		file.names = sapply(chromosomes, function(chr) {gsub("\\[CHR\\]", chr, gwas.input$eqtl.file.specifier)})
+		check.files.exist(file.names)
+		genes = NULL
+
+		for (i in seq_along(chromosomes)) {
+			chr = chromosomes[i]
+			gwas.input$current.stats = list()
+
+			sum.stats = read.sumstats.file(file.names[i], "eqtl", N.override=gwas.input$eqtl.N)
+			sum.stats = sum.stats[sum.stats$SNP %in% gwas.input$analysis.snps,] #subset to SNPs available for other phenotypes
+
+			# align to reference data, remove ambiguous / non-matched SNPs
+			bim.index = match(sum.stats$SNP, gwas.input$ref$bim$snp.name)
+			bim.map = map.alleles(gwas.input$ref$bim$allele.1[bim.index], gwas.input$ref$bim$allele.2[bim.index])
+			alignment = com.pair(bim.map, map.alleles(sum.stats$A1, sum.stats$A2))
+			sum.stats$STAT = sum.stats$STAT * alignment
+			sum.stats = sum.stats[!is.na(sum.stats$STAT),]
+			gwas.input$current.stats[[chr]] = sum.stats
+
+			# add to gene index
+			genes = rbind(genes, data.frame(GENE=unique(sum.stats$GENE), CHR=chr, stringsAsFactors=F))
+		}
+
+		gwas.input$current.genes = genes[,1]
+		duplicates = duplicated(gwas.input$current.genes)
+    if (any(duplicates)) {
+			duplicates = paste(unique(gwas.input$current.genes[duplicates]), collapse=", ")
+			print(paste0("Error: following gene IDs encountered for multiple chromosomes: ", duplicates))
+			return(invisible(NULL))
+		}
 	}
 
 	gwas.input$eqtl.genes = genes
 	gwas.input$current.chromosomes = chromosomes
-	if (!is.null(gwas.input$current.tissue)) gwas.input$current.genes = gwas.input$current.stats$label[gwas.input$current.stats$gene.name %in% gwas.input$eqtl.genes$name] #reset list of available genes
 }
+
+
 
 
 #' Process eQTL locus info
@@ -247,34 +349,46 @@ set.chromosomes = function(gwas.input, chromosomes) {
 #'
 #' @export
 process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
-	if (!all(c("eqtl.genes", "eqtl.tissues", "eqtl.type") %in% names(eqtl.input)) || !any(eqtl.input$info$var.type == eqtl.input$eqtl.type)) {print("Error: eqtl.input is not configured for eQTL analysis"); return(invisible(NULL))}
-	if (is.null(eqtl.input$current.tissue)) {print("Error: no tissue initialized; run set.tissue function to load tissue data"); return(NULL)}
+	if (!all(c("eqtl.genes", "eqtl.type") %in% names(eqtl.input)) || !any(eqtl.input$info$var.type == eqtl.input$eqtl.type)) {print("Error: eqtl.input is not configured for eQTL analysis"); return(invisible(NULL))}
+	if (eqtl.input$eqtl.preprocessed && is.null(eqtl.input$current.tissue)) {print("Error: no tissue initialized; run set.tissue function to load tissue data"); return(NULL)}
 
 	if (is.character(gene)) {
-		if (!(any(eqtl.input$current.genes == gene))) {print(paste0("Error: gene '", gene, "' not available for tissue '", tissue, "'")); return(NULL)}
+		if (!(any(eqtl.input$current.genes == gene))) {print(paste0("Error: gene '", gene, "' not available", if (eqtl.input$eqtl.preprocessed) paste0(" for tissue '", tissue, "'") )); return(NULL)}
 	} else {
 		gene = suppressWarnings(as.integer(gene))
 		if (is.na(gene) || gene <= 0 || gene > length(eqtl.input$current.genes)) {print("Error: specified gene index is non-numeric or out of bounds"); return(NULL)}
 		gene = eqtl.input$current.genes[gene]
 	}
-	gene.index.curr = which(eqtl.input$current.stats$label == gene) #offset of input gene in tissue sumstats
-	gene.index.main = which(eqtl.input$eqtl.genes$name == eqtl.input$current.stats$gene.name[gene.index.curr]) #offset of input gene in main annotation
 
-	# convert SNP-gene mapping to indices
-	if (!eqtl.input$eqtl.genes$processed[gene.index.main]) {
-		eqtl.input$eqtl.genes$snps[[gene.index.main]] = match(strsplit(eqtl.input$eqtl.genes$snps[[gene.index.main]], ";")[[1]], eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$SNP)
-		eqtl.input$eqtl.genes$processed[gene.index.main] = TRUE
+	if (eqtl.input$eqtl.preprocessed) {
+		gene.index.curr = which(eqtl.input$current.stats$label == gene) #offset of input gene in tissue sumstats
+		gene.index.main = which(eqtl.input$eqtl.genes$name == eqtl.input$current.stats$gene.name[gene.index.curr]) #offset of input gene in main annotation
+
+		# convert SNP-gene mapping to indices
+		if (!eqtl.input$eqtl.genes$processed[gene.index.main]) {
+			eqtl.input$eqtl.genes$snps[[gene.index.main]] = match(strsplit(eqtl.input$eqtl.genes$snps[[gene.index.main]], ";")[[1]], eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$SNP)
+			eqtl.input$eqtl.genes$processed[gene.index.main] = TRUE
+		}
+		snp.index = eqtl.input$eqtl.genes$snps[[gene.index.main]] #offsets of SNPs in the gene in sum.stats data.frame (includes NAs)
+
+		#load summary statistics and define locus
+		zstat = as.numeric(strsplit(eqtl.input$current.stats$zstat[[gene.index.curr]], ";")[[1]])
+		if (length(zstat) != length(snp.index)) {print(paste0("Error: summary statistics for gene '", gene, "' are not consistent with gene annotation")); return(NULL)}
+		zstat = zstat * eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$DIR[snp.index]
+		valid = !is.na(zstat) # NA's in snp.index will be tagged as invalid here as well
+		eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$STAT[snp.index[valid]] = zstat[valid]
+
+		locus = list(LOC=gene, CHR=eqtl.input$eqtl.genes$chr[gene.index.main], SNPS=eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$SNP[snp.index[valid]])
+	} else {
+  	chr = eqtl.input$eqtl.genes$CHR[eqtl.input$eqtl.genes$GENE == gene]
+		curr.stats = eqtl.input$current.stats[[chr]][eqtl.input$current.stats[[chr]]$GENE == gene,]
+		stat.index = match(curr.stats$SNP, eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$SNP)
+		eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$STAT[stat.index] = curr.stats$STAT
+		eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$N[stat.index] = curr.stats$N
+
+  	locus = list(LOC=gene, CHR=chr, SNPS=curr.stats$SNP)
 	}
-	snp.index = eqtl.input$eqtl.genes$snps[[gene.index.main]] #offsets of SNPs in the gene in sum.stats data.frame (includes NAs)
 
-	#load summary statistics and define locus
-	zstat = as.numeric(strsplit(eqtl.input$current.stats$zstat[[gene.index.curr]], ";")[[1]])
-	if (length(zstat) != length(snp.index)) {print(paste0("Error: summary statistics for gene '", gene, "' are not consistent with gene annotation")); return(NULL)}
-	zstat = zstat * eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$DIR[snp.index]
-	valid = !is.na(zstat) # NA's in snp.index will be tagged as invalid here as well
-	eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$STAT[snp.index[valid]] = zstat[valid]
-
-	locus = list(LOC=gene, CHR=eqtl.input$eqtl.genes$chr[gene.index.main], SNPS=eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$SNP[snp.index[valid]])
 	class(locus) = "gene"
 
 	if (!is.null(phenos)) phenos = unique(c(phenos, eqtl.input$eqtl.type))

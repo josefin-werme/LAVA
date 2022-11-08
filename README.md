@@ -2,7 +2,7 @@ LAVA TUTORIAL
 ================
 Josefin Werme (<j.werme@vu.nl>), Christiaan de Leeuw
 (<c.a.de.leeuw@vu.nl>), CTG Lab, VU Amsterdam
-2022-06-10
+2022-11-08
 
 This tutorial shows you how to read in and analyse data with LAVA
 (**L**ocal **A**nalysis of \[co\]**V**ariant **A**ssociation): A tool
@@ -65,84 +65,79 @@ directory*
 
 #### As input, LAVA needs the following data:
 
--   **Reference genotype data** in plink format (.bim, .bed, .fam), used
-    for the estimation of LD
+- **Reference genotype data** in plink format (.bim, .bed, .fam), used
+  for the estimation of LD
 
-    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/)
-        (pre-processed input files can be found
-        [here](https://ctg.cncr.nl/software/magma))
+  - e.g. [1000 genomes](https://www.internationalgenome.org/data/)
+    (pre-processed input files can be found
+    [here](https://ctg.cncr.nl/software/magma))
 
--   **Input info file**, used for convenient processing of multiple
-    phenotypes. Requires the columns:
+- **Input info file**, used for convenient processing of multiple
+  phenotypes. Requires the columns:
 
-    -   ***phenotype***: phenotype IDs
+  - ***phenotype***: phenotype IDs
 
-    -   ***cases***: number of cases (set to NA for continuous
-        phenotypes)
+  - ***cases***: number of cases (set to NA for continuous phenotypes)
 
-    -   ***controls:*** number of controls (set to NA for continuous
-        phenotypes)
+  - ***controls:*** number of controls (set to NA for continuous
+    phenotypes)
 
-    -   ***prevalence*** (optional): the population prevalence of binary
-        phenotypes
+  - ***prevalence*** (optional): the population prevalence of binary
+    phenotypes
 
-        -   this is only relevant if you want an estimate of the local
-            population *h*<sup>2</sup> for binary phenotypes. Estimates
-            of the observed local sample *h*<sup>2</sup> are still
-            provided
+    - this is only relevant if you want an estimate of the local
+      population *h*<sup>2</sup> for binary phenotypes. Estimates of the
+      observed local sample *h*<sup>2</sup> are still provided
 
-    -   ***filename***: paths and file names to the relevant summary
-        statistics
+  - ***filename***: paths and file names to the relevant summary
+    statistics
 
--   **Summary statistics** for all phenotypes of interest. To
-    accommodate common summary statistics formats, a number of different
-    column names are possible for the same column type (but **only ONE**
-    header should be provided for each category; i.e do not provide a
-    file that contains multiple valid SNP ID columns):
+- **Summary statistics** for all phenotypes of interest. To accommodate
+  common summary statistics formats, a number of different column names
+  are possible for the same column type (but **only ONE** header should
+  be provided for each category; i.e do not provide a file that contains
+  multiple valid SNP ID columns):
 
-    -   ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID /
-        RSID_UKB***: SNP IDs
+  - ***SNP / ID / SNPID_UKB/ SNPID / MarkerName / RSID / RSID_UKB***:
+    SNP IDs
 
-    -   ***A1 / ALT***: effect allele
+  - ***A1 / ALT***: effect allele
 
-    -   ***A2 / REF***: reference allele
+  - ***A2 / REF***: reference allele
 
-    -   ***N / NMISS / N_analyzed***: number of samples
+  - ***N / NMISS / N_analyzed***: number of samples
 
-    -   ***Z / T / STAT / Zscore***: if provided, no p-values or
-        coefficients are needed; otherwise, please provide both:
+  - ***Z / T / STAT / Zscore***: if provided, no p-values or
+    coefficients are needed; otherwise, please provide both:
 
-        -   ***B / BETA / OR / logOdds***: effect size coefficients
+    - ***B / BETA / OR / logOdds***: effect size coefficients
 
-        -   ***P***: p-values
+    - ***P***: p-values
 
--   **Locus definition file**: File that defines loci either based on
-    genomic coordinates or a list of SNPs (the locus file that we used
-    in the LAVA preprint can be found in the support_data folder; this
-    file was obtained via
-    <https://github.com/cadeleeuw/lava-partitioning> using the g1000
-    data phase 3, build GRCh37/hg19). The locus file requires the
-    following headers:
+- **Locus definition file**: File that defines loci either based on
+  genomic coordinates or a list of SNPs (the locus file that we used in
+  the LAVA preprint can be found in the support_data folder; this file
+  was obtained via <https://github.com/cadeleeuw/lava-partitioning>
+  using the g1000 data phase 3, build GRCh37/hg19). The locus file
+  requires the following headers:
 
-    -   ***LOC***: locus ID
+  - ***LOC***: locus ID
 
-    -   ***CHR, START, STOP***: coordinates (i.e. basepair positions)
+  - ***CHR, START, STOP***: coordinates (i.e. basepair positions)
 
-    -   ***SNPS***: list of SNPS. ‘;’ separated, no white-space
-        (optional)
+  - ***SNPS***: list of SNPS. ‘;’ separated, no white-space (optional)
 
-        -   note: if a SNP list is provided, coordinates will be ignored
-            and the reference data will be subsetted based on SNP IDs
-            instead. This can be convenient if the locus definition file
-            is based on a different GRChX version than the reference
-            data. If no SNP list is provided, the versions of reference
-            and the locus file MUST match!
+    - note: if a SNP list is provided, coordinates will be ignored and
+      the reference data will be subsetted based on SNP IDs instead.
+      This can be convenient if the locus definition file is based on a
+      different GRChX version than the reference data. If no SNP list is
+      provided, the versions of reference and the locus file MUST match!
 
--   **Sample overlap file** (optional)
+- **Sample overlap file** (optional)
 
-    -   This can be obtained using the results from cross-trait LDSC
-        (see the ‘vignettes/sample_overlap.Rmd’ file for a walk through
-        on how to do this)
+  - This can be obtained using the results from cross-trait LDSC (see
+    the ‘vignettes/sample_overlap.Rmd’ file for a walk through on how to
+    do this)
 
 ## Process input
 
@@ -170,9 +165,10 @@ head(input$ref$bim)   # bim file from reference data
   
 # read more about this function
 ?process.input()
+#> starting httpd help server ... done
 ```
 
-As you can see in the input$info data frame, additional columns have
+As you can see in the input\$info data frame, additional columns have
 been added to indicate whether phenotypes are binary, and what the the
 proportion of cases are for binary phenotypes (computed from the cases /
 controls columns). *(NOTE: the N column here is not used for the
@@ -206,17 +202,17 @@ locus = process.locus(loci[1,], input)
 If we inspect the locus object, we can see that it contains a lot of
 info about the locus, such as:
 
--   Locus coordinates (‘chr’,‘start’,‘stop’)
+- Locus coordinates (‘chr’,‘start’,‘stop’)
 
--   The number of SNPs (‘n.snps’) / PCs (‘K’) within the locus
+- The number of SNPs (‘n.snps’) / PCs (‘K’) within the locus
 
--   The (estimated) PC projected joint SNP effects, *δ* (‘delta’)
+- The estimated PC projected joint SNP effects, $\hat{\delta}$ (‘delta’)
 
--   The sampling covariance *σ*<sup>2</sup> (‘sigma’)
+- The estimated sampling covariance matrix $\hat{\Sigma}$ (‘sigma’)
 
--   The genetic covariance matrix
-    *Ω* = *t*(*δ*)′*δ*/*K* − *σ*<sup>2</sup> (‘omega’) with
-    corresponding correlation matrix *Ω*<sup>\*</sup> (‘omega.cor’)
+- The estimated genetic covariance matrix
+  $\hat{\Omega} = \hat{\delta}^T\hat{\delta} / K-\hat{\Sigma}$ (‘omega’)
+  with corresponding correlation matrix $\hat{\Omega}^*$ (‘omega.cor’)
 
 ``` r
 ls(locus)                               # inspect locus
@@ -281,13 +277,13 @@ run.bivar() function
 ``` r
 run.bivar(locus)
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression neuro 0.5278610   0.27222   0.78653 0.27863700   0.0741  0.61863
-#> 2 depression   bmi 0.0723039  -0.18226   0.32207 0.00522785   0.0000  0.10551
-#> 3      neuro   bmi 0.1069490  -0.09761   0.31105 0.01143810   0.0000  0.09675
+#> 1 depression neuro 0.5278610   0.25988   0.78047 0.27863700  0.06754  0.60914
+#> 2 depression   bmi 0.0723039  -0.18644   0.33832 0.00522785  0.00000  0.11636
+#> 3      neuro   bmi 0.1069490  -0.09833   0.31404 0.01143810  0.00000  0.09875
 #>             p
-#> 1 0.000497822
-#> 2 0.566955000
-#> 3 0.300836000
+#> 1 0.000489715
+#> 2 0.566460000
+#> 3 0.301539000
 ```
 
 When multiple phenotypes are entered simultaneously, bivariate
@@ -298,9 +294,9 @@ the ’phenos’ argument
 ``` r
 run.bivar(locus, phenos=c("neuro","depression"))
 #>   phen1      phen2      rho rho.lower rho.upper       r2 r2.lower r2.upper
-#> 1 neuro depression 0.527861   0.26958   0.77426 0.278637  0.07267  0.59948
+#> 1 neuro depression 0.527861   0.26644   0.78611 0.278637  0.07099  0.61796
 #>             p
-#> 1 0.000491332
+#> 1 0.000516683
 ```
 
 Additionally, should you only be interested in the *r*<sub>g</sub>‘s
@@ -311,11 +307,11 @@ only on those relevant to the target
 ``` r
 run.bivar(locus, target="bmi")
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression   bmi 0.0723039  -0.18413   0.32928 0.00522785        0  0.11137
-#> 2      neuro   bmi 0.1069490  -0.09879   0.30788 0.01143810        0  0.09479
+#> 1 depression   bmi 0.0723039  -0.17936    0.3336 0.00522785        0  0.11296
+#> 2      neuro   bmi 0.1069490  -0.09808    0.3147 0.01143810        0  0.09916
 #>          p
-#> 1 0.568090
-#> 2 0.300139
+#> 1 0.567687
+#> 2 0.304028
 # ?run.bivar  # check the function description for more options
 ```
 
@@ -339,13 +335,13 @@ run.univ.bivar(locus)
 #> 
 #> $bivar
 #>        phen1 phen2       rho rho.lower rho.upper         r2 r2.lower r2.upper
-#> 1 depression neuro 0.5278610   0.26645   0.77679 0.27863700    0.071  0.60340
-#> 2 depression   bmi 0.0723039  -0.18522   0.32921 0.00522785    0.000  0.10994
-#> 3      neuro   bmi 0.1069490  -0.09416   0.30821 0.01143810    0.000  0.09499
-#>             p
-#> 1 0.000523611
-#> 2 0.566395000
-#> 3 0.301116000
+#> 1 depression neuro 0.5278610   0.26779   0.77437 0.27863700  0.07171  0.59965
+#> 2 depression   bmi 0.0723039  -0.18304   0.32830 0.00522785  0.00000  0.11000
+#> 3      neuro   bmi 0.1069490  -0.09971   0.30984 0.01143810  0.00000  0.09600
+#>            p
+#> 1 0.00049323
+#> 2 0.56817400
+#> 3 0.30065800
 
 # or with a custom p-value threshold
 run.univ.bivar(locus, univ.thresh = 1e-8)
@@ -356,8 +352,8 @@ run.univ.bivar(locus, univ.thresh = 1e-8)
 #> 3        bmi 0.000975242 6.60429e-32
 #> 
 #> $bivar
-#>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper        p
-#> 1 neuro   bmi 0.106949  -0.10212   0.31327 0.0114381        0  0.09815 0.301086
+#>   phen1 phen2      rho rho.lower rho.upper        r2 r2.lower r2.upper      p
+#> 1 neuro   bmi 0.106949  -0.09448   0.31062 0.0114381        0  0.09648 0.2988
 ```
 
 *\[ You can use the ‘phenos’ and ‘target’ arguments with this function
@@ -415,13 +411,13 @@ run.univ.bivar(locus, target="hypothyroidism")
 #> 
 #> $bivar
 #>      phen1          phen2      rho rho.lower rho.upper       r2 r2.lower
-#> 1   asthma hypothyroidism 0.847161   0.77967   0.91019 0.717682  0.60788
-#> 2   rheuma hypothyroidism 0.525462   0.44066   0.61089 0.276111  0.19419
-#> 3 diabetes hypothyroidism 0.859903   0.77378   0.93653 0.739434  0.59874
+#> 1   asthma hypothyroidism 0.847161   0.77809   0.90989 0.717682  0.60543
+#> 2   rheuma hypothyroidism 0.525462   0.43988   0.61020 0.276111  0.19350
+#> 3 diabetes hypothyroidism 0.859903   0.77213   0.93996 0.739434  0.59618
 #>   r2.upper           p
-#> 1  0.82845 1.10249e-43
-#> 2  0.37318 1.31431e-24
-#> 3  0.87709 1.12987e-26
+#> 1  0.82791 1.37189e-43
+#> 2  0.37234 1.28391e-24
+#> 3  0.88352 1.79586e-25
 ```
 
 They are! We can then run the multiple regression with all predictors.
@@ -432,39 +428,39 @@ run.multireg(locus, target='hypothyroidism', adap.thresh=NULL) # We can set the 
 #> [[1]]
 #> [[1]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism 0.8184750     0.70634     0.93858 0.719291  0.61413
-#> 2     rheuma hypothyroidism 0.0493099    -0.10172     0.18721 0.719291  0.61413
+#> 1     asthma hypothyroidism 0.8184750     0.70373     0.94088 0.719291  0.61226
+#> 2     rheuma hypothyroidism 0.0493099    -0.10687     0.19016 0.719291  0.61226
 #>   r2.upper           p
-#> 1  0.83237 3.02366e-27
-#> 2  0.83237 5.09853e-01
+#> 1  0.83084 6.42869e-28
+#> 2  0.83084 5.09406e-01
 #> 
 #> [[1]][[2]]
 #>   predictors        outcome    gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism 0.405003    -0.07474     0.76873 0.778212  0.68191
-#> 2   diabetes hypothyroidism 0.505998     0.12297     0.99130 0.778212  0.68191
+#> 1     asthma hypothyroidism 0.405003    -0.08385     0.77029 0.778212  0.68215
+#> 2   diabetes hypothyroidism 0.505998     0.12563     0.98608 0.778212  0.68215
 #>   r2.upper         p
-#> 1  0.89704 0.1055990
-#> 2  0.89704 0.0368729
+#> 1  0.89773 0.1065610
+#> 2  0.89773 0.0366176
 #> 
 #> [[1]][[3]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     rheuma hypothyroidism -0.195568    -0.50036     0.02281 0.757829  0.60581
-#> 2   diabetes hypothyroidism  1.000800     0.80413     1.26776 0.757829  0.60581
+#> 1     rheuma hypothyroidism -0.195568    -0.50505     0.02032 0.757829  0.61229
+#> 2   diabetes hypothyroidism  1.000800     0.80957     1.26710 0.757829  0.61229
 #>   r2.upper           p
-#> 1  0.92612 1.09879e-01
-#> 2  0.92612 2.32928e-12
+#> 1  0.92504 1.12345e-01
+#> 2  0.92504 1.57991e-11
 #> 
 #> 
 #> [[2]]
 #> [[2]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism  0.372955    -0.28307     0.75008 0.790052   0.6922
-#> 2     rheuma hypothyroidism -0.158500    -0.50829     0.03882 0.790052   0.6922
-#> 3   diabetes hypothyroidism  0.648194     0.16859     1.50164 0.790052   0.6922
+#> 1     asthma hypothyroidism  0.372955    -0.28277     0.75763 0.790052  0.69108
+#> 2     rheuma hypothyroidism -0.158500    -0.49350     0.04614 0.790052  0.69108
+#> 3   diabetes hypothyroidism  0.648194     0.15873     1.47632 0.790052  0.69108
 #>   r2.upper         p
-#> 1  0.93605 0.1919830
-#> 2  0.93605 0.1871520
-#> 3  0.93605 0.0576759
+#> 1  0.93609 0.1896560
+#> 2  0.93609 0.1877530
+#> 3  0.93609 0.0546464
 ```
 
 Here, the ‘target’ argument specifies the outcome phenotype of interest,
@@ -491,13 +487,13 @@ predictors, which indeed confirms this
 ``` r
 run.bivar(locus, phenos=c("asthma","rheuma","diabetes"))
 #>    phen1    phen2      rho rho.lower rho.upper       r2 r2.lower r2.upper
-#> 1 asthma   rheuma 0.581756   0.51692   0.64603 0.338440  0.26721  0.41736
-#> 2 asthma diabetes 0.873835   0.79775   0.94096 0.763587  0.63640  0.88541
-#> 3 rheuma diabetes 0.720453   0.62960   0.80566 0.519053  0.39639  0.64909
+#> 1 asthma   rheuma 0.581756   0.51590   0.64545 0.338440  0.26616  0.41661
+#> 2 asthma diabetes 0.873835   0.79795   0.94434 0.763587  0.63673  0.89178
+#> 3 rheuma diabetes 0.720453   0.63110   0.80453 0.519053  0.39829  0.64726
 #>             p
-#> 1 8.46544e-47
-#> 2 4.41388e-31
-#> 3 2.68605e-29
+#> 1 4.76675e-46
+#> 2 2.53390e-31
+#> 3 2.87612e-29
 ```
 
 Clues of this collinearity are also evident in the multivariate model
@@ -525,13 +521,13 @@ run.multireg(locus, target='hypothyroidism', only.full.model=T)
 #> [[1]]
 #> [[1]][[1]]
 #>   predictors        outcome     gamma gamma.lower gamma.upper       r2 r2.lower
-#> 1     asthma hypothyroidism  0.372955    -0.26141     0.76544 0.790052   0.6899
-#> 2     rheuma hypothyroidism -0.158500    -0.49837     0.04659 0.790052   0.6899
-#> 3   diabetes hypothyroidism  0.648194     0.14919     1.45862 0.790052   0.6899
+#> 1     asthma hypothyroidism  0.372955    -0.30570     0.74662 0.790052  0.69221
+#> 2     rheuma hypothyroidism -0.158500    -0.50152     0.04236 0.790052  0.69221
+#> 3   diabetes hypothyroidism  0.648194     0.17522     1.49879 0.790052  0.69221
 #>   r2.upper         p
-#> 1  0.93728 0.1914610
-#> 2  0.93728 0.1850240
-#> 3  0.93728 0.0531119
+#> 1   0.9371 0.1873800
+#> 2   0.9371 0.1854820
+#> 3   0.9371 0.0539479
 ```
 
 ### Partial correlation
@@ -556,9 +552,9 @@ interested in, and use the ‘phenos’ argument to exclude rheuma
 run.pcor(locus, target=c("hypothyroidism","diabetes"), phenos='asthma')
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'asthma'"
 #>            phen1    phen2      z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037  0.11119
+#> 1 hypothyroidism diabetes asthma   0.717682   0.763587 0.463037  0.10444
 #>   ci.upper         p
-#> 1  0.76771 0.0157575
+#> 1  0.76728 0.0143946
 ```
 
 Indeed, here you see that the partial correlation has been almost
@@ -572,9 +568,9 @@ If we instead condition on rheuma
 run.pcor(locus, target=c("hypothyroidism","diabetes"), phenos="rheuma", adap.thresh=NULL)
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'rheuma'"
 #>            phen1    phen2      z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.68377
+#> 1 hypothyroidism diabetes rheuma   0.276111   0.519053 0.815756  0.68299
 #>   ci.upper           p
-#> 1  0.94257 1.64949e-13
+#> 1    0.944 1.88776e-13
 ```
 
 The partial correlation (.82) is now only slightly lower than the
@@ -593,9 +589,92 @@ phenotypes) in one go. Note that unless subsetting is done with the
 run.pcor(locus, target=c("hypothyroidism","diabetes"))
 #> [1] "~ Running partial correlation for 'hypothyroidism' and 'diabetes', conditioned on 'asthma' + 'rheuma'"
 #>            phen1    phen2             z r2.phen1_z r2.phen2_z     pcor ci.lower
-#> 1 hypothyroidism diabetes asthma;rheuma   0.719291   0.831584 0.502074  0.12508
+#> 1 hypothyroidism diabetes asthma;rheuma   0.719291   0.831584 0.502074  0.12893
 #>   ci.upper         p
-#> 1  0.86341 0.0155154
+#> 1  0.85415 0.0144906
+```
+
+------------------------------------------------------------------------
+
+## Analysis of eQTL input (beta)
+
+LAVA can also be used in conjunction with eQTL input data to estimate
+and test local genetic correlations of phenotypes with the gene
+expression of specific genes, akin to TWAS, and additional input
+processing functions have been provided to facilite this.
+
+To perform the analysis, first run the process.input() function as
+described above to load the summary statistics for all non-eQTL input
+phenotypes. The resulting `input` object returned by process.input() is
+then run through a secondary eQTL input processing function to add the
+eQTL summary statistics to it.
+
+Note that LAVA eQTL analysis is still a beta feature, and implementation
+may change in future.
+
+### Loading input
+
+When using input pre-formatted for LAVA, which will be made available
+via the [LAVA website](https://ctg.cncr.nl/software/lava), adding the
+eQTL summary statistics is done as follows, where the root folder of the
+eQTL summary statistics is assumed to be `data/eqtl`:
+
+``` r
+process.eqtl.input(input, "data/eqtl", chromosomes="auto")
+set.tissue(input, "whole_blood")
+```
+
+The process.eqtl.input() function will first load the SNP-to-gene
+annotation for all the specified chromosomes into `input`, and
+set.tissue() subsequently loads the eQTL summary statistics for the
+specified tissue. Calling set.tissue() again with a different tissue
+will replace the summary statistics loaded for the current tissue. The
+set.chromosomes() function can also be used to load a different set of
+chromosomes, and in practice it may be practical to load only a single
+chromosome at a time to reduce the memory and loading time.
+
+The eQTL summary statistics can also be provided in general data files,
+which should have the same format as the input files for regular
+phenotypes, plus an additional **GENE** column indicating which gene the
+SNP associations on each line belong to. Input files must be provided
+separately for each chromosome, with file names that are identical
+except for the chromosome code. Data is loaded as follows:
+
+``` r
+process.eqtl.text.input(input, "data/eqtl_text/whole_blood.chr[CHR].stats", chromosomes=14, sample.size=750)
+```
+
+The second argument of process.eqtl.text.input() specifies the eQTL file
+format, with the `[CHR]` a placeholder for the chromosome code; in this
+case, LAVA will look for the file
+`data/eqtl_text/whole_blood.chr14.stats`. The sample.size argument is
+optional, and can be omitted if a sample size column is present in the
+input files.
+
+### Performing the analysis
+
+After loading the eQTL data into the `input` object, analysis can be
+performed by generating a locus object for the gene to be analysed:
+
+``` r
+locus = process.eqtl.locus("ENSG00000005700.14", input)
+```
+
+This function works the same way as process.locus(), except that the
+first argument should specify a gene rather than a locus. Genes can be
+specified either by name (as above) or by numeric index, and the list of
+all loaded genes is stored in `input$current.genes`. Subsequent analysis
+on the `locus` object is performed in the same way as in a regular LAVA
+analysis, and so a simple analysis script would look something like:
+
+``` r
+for (i in 1:length(input$current.genes)) {
+  locus = process.eqtl.locus(i, input)
+  univ = run.univ(locus)
+  bivar = run.bivar(locus)
+  
+  # ...
+}
 ```
 
 ------------------------------------------------------------------------

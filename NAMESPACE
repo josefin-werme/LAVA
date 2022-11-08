@@ -3,6 +3,7 @@
 export(meta.analyse.locus)
 export(process.eqtl.input)
 export(process.eqtl.locus)
+export(process.eqtl.text.input)
 export(process.input)
 export(process.locus)
 export(read.loci)

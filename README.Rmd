@@ -4,7 +4,6 @@ author: "Josefin Werme (j.werme@vu.nl), Christiaan de Leeuw (c.a.de.leeuw@vu.nl)
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::github_document:
-    math_method: NULL
 vignette: >
   %\VignetteIndexEntry{tutorial}
   %\VignetteEngine{knitr::rmarkdown}
@@ -44,7 +43,7 @@ install.packages("devtools")
 LAVA can then be installed directly from github
 
 ```{r, eval=F}
-devtools::install_github("https://github.com/josefin-werme/LAVA.git")
+devtools::install_github("https://github.com/josefin-werme/LAVA.git", build_vignettes=TRUE)
 ```
 
 Or by downloading the code (Download Zip under the Code button on GitHub), unzipping and installing from disk
@@ -158,11 +157,11 @@ If we inspect the locus object, we can see that it contains a lot of info about 
 
 -   The number of SNPs ('n.snps') / PCs ('K') within the locus
 
--   The (estimated) PC projected joint SNP effects, $\delta$ ('delta')
+-   The estimated PC projected joint SNP effects, $\hat{\delta}$ ('delta')
 
--   The sampling covariance $\sigma^2$ ('sigma')
+-   The estimated sampling covariance matrix $\hat{\Sigma}$ ('sigma')
 
--   The genetic covariance matrix $\Omega = t(\delta)'\delta / K-\sigma^2$ ('omega') with corresponding correlation matrix $\Omega^*$ ('omega.cor')
+-   The estimated genetic covariance matrix $\hat{\Omega} = \hat{\delta}^T\hat{\delta} / K-\hat{\Sigma}$ ('omega') with corresponding correlation matrix $\hat{\Omega}^*$ ('omega.cor')
 
 ```{r, eval=F}
 ls(locus)                               # inspect locus
@@ -321,6 +320,55 @@ run.pcor(locus, target=c("hypothyroidism","diabetes"))
 
 ------------------------------------------------------------------------
 
+## Analysis of eQTL input (beta)
+
+LAVA can also be used in conjunction with eQTL input data to estimate and test local genetic correlations of phenotypes with the gene expression of specific genes, akin to TWAS, and additional input processing functions have been provided to facilite this.
+
+To perform the analysis, first run the process.input() function as described above to load the summary statistics for all non-eQTL input phenotypes. The resulting `input` object returned by process.input() is then run through a secondary eQTL input processing function to add the eQTL summary statistics to it.
+
+Note that LAVA eQTL analysis is still a beta feature, and implementation may change in future.
+
+### Loading input
+
+When using input pre-formatted for LAVA, which will be made available via the [LAVA website](https://ctg.cncr.nl/software/lava), adding the eQTL summary statistics is done as follows, where the root folder of the eQTL summary statistics is assumed to be `data/eqtl`:
+
+```{r, eval=F}
+process.eqtl.input(input, "data/eqtl", chromosomes="auto")
+set.tissue(input, "whole_blood")
+```
+
+The process.eqtl.input() function will first load the SNP-to-gene annotation for all the specified chromosomes into `input`, and set.tissue() subsequently loads the eQTL summary statistics for the specified tissue. Calling set.tissue() again with a different tissue will replace the summary statistics loaded for the current tissue. The set.chromosomes() function can also be used to load a different set of chromosomes, and in practice it may be practical to load only a single chromosome at a time to reduce the memory and loading time.
+
+The eQTL summary statistics can also be provided in general data files, which should have the same format as the input files for regular phenotypes, plus an additional **GENE** column indicating which gene the SNP associations on each line belong to. Input files must be provided separately for each chromosome, with file names that are identical except for the chromosome code. Data is loaded as follows:
+
+```{r, eval=F}
+process.eqtl.text.input(input, "data/eqtl_text/whole_blood.chr[CHR].stats", chromosomes=14, sample.size=750)
+```
+
+The second argument of process.eqtl.text.input() specifies the eQTL file format, with the `[CHR]` a placeholder for the chromosome code; in this case, LAVA will look for the file `data/eqtl_text/whole_blood.chr14.stats`. The sample.size argument is optional, and can be omitted if a sample size column is present in the input files.
+
+### Performing the analysis
+
+After loading the eQTL data into the `input` object, analysis can be performed by generating a locus object for the gene to be analysed:
+
+```{r, eval=F}
+locus = process.eqtl.locus("ENSG00000005700.14", input)
+```
+
+This function works the same way as process.locus(), except that the first argument should specify a gene rather than a locus. Genes can be specified either by name (as above) or by numeric index, and the list of all loaded genes is stored in `input$current.genes`. Subsequent analysis on the `locus` object is performed in the same way as in a regular LAVA analysis, and so a simple analysis script would look something like:
+
+```{r, eval=F}
+for (i in 1:length(input$current.genes)) {
+  locus = process.eqtl.locus(i, input)
+  univ = run.univ(locus)
+  bivar = run.bivar(locus)
+  
+  # ...
+}
+```
+
+------------------------------------------------------------------------
+
 ## Example analysis script for running bivariate *r*~g~ analysis across all genomic loci
 
 If you are interested in analysing the bivariate local *r*~g~'s between a large amount of phenotypes, we advice using a cluster computer. The example analysis script below shows how you might set up an R script that can be called from the command line, analysing the local *r*~g~'s across all loci in the locus file.
@@ -377,6 +425,6 @@ write.table(do.call(rbind,b), paste0(out.fname,".bivar.lava"), row.names=F,quote
 print(paste0("Done! Analysis output written to ",out.fname,".*.lava"))
 ```
 
-------
+------------------------------------------------------------------------
 
 For more elaborate scripts intended for whole genome bivariate rg analyses on a SLURM cluster (which also **parallelise** across loci), please see the cluster_setup/scripts folder here: <https://surfdrive.surf.nl/files/index.php/s/rtmNm8YZERGwl7f>
