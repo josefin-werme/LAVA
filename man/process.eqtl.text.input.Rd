@@ -32,6 +32,6 @@ fields are added to gwas.input.
 }
 \description{
 Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input from plain-text input files. Input files should follow the same format
-as summary statistics input files for other phenotypes, with an additional column GENE to indicate which gene the association results on each line belong to. Input files must be provided separately 
+as summary statistics input files for other phenotypes, with an additional column GENE to indicate which gene the association results on each line belong to. Input files must be provided separately
 per chromosome.
 }

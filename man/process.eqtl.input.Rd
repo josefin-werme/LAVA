@@ -16,7 +16,7 @@ process.eqtl.input(
 \arguments{
 \item{gwas.input}{GWAS input object generated using \code{\link{process.input}} (object is modified by function).}
 
-\item{eqtl.folder}{Folder containing the eQTL input files (format described in link above).}
+\item{eqtl.folder}{Folder containing the preprocessed eQTL input files.}
 
 \item{tissue}{If set, initializes the input object for analysis of the specified tissue. Equivalent to calling
 the \code{\link{set.tissue}} function after running process.eqtl.input().}
@@ -42,5 +42,5 @@ fields are added to gwas.input. Note that if the 'tissue' argument is not set, \
 }
 }
 \description{
-Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input from preprocessed GTEx v8 input files (see \code\link[LAVA website]{https://ctg.cncr.nl/software/lava}).
+Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input from preprocessed GTEx v8 input files (see \href{https://ctg.cncr.nl/software/lava}{LAVA website}).
 }
