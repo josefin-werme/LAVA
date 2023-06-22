@@ -35,24 +35,13 @@ install.packages("BiocManager")
 BiocManager::install("snpStats")
 ```
 
-You will also need devtools for the installation
+LAVA can be installed directly from github using the following command; add the argument 'build_vignettes=TRUE' to also install the vignettes (this may require installing Pandoc first, if not yet available on your system): 
 
 ``` r
-install.packages("devtools")
+remotes::install_github("josefin-werme/LAVA")
 ```
 
-LAVA can then be installed directly from github
-
-``` r
-devtools::install_github("https://github.com/josefin-werme/LAVA.git", build_vignettes=TRUE)
-```
-
-Or by downloading the code (Download Zip under the Code button on
-GitHub), unzipping and installing from disk
-
-``` r
-devtools::install("~/Programs/R/LAVA")      # specify local path here
-```
+After installation, load the LAVA library to use it:
 
 ``` r
 library(LAVA)
