@@ -38,6 +38,7 @@ BiocManager::install("snpStats")
 LAVA can be installed directly from github using the following command; add the argument 'build_vignettes=TRUE' to also install the vignettes (this may require installing Pandoc first, if not yet available on your system): 
 
 ``` r
+install.packages("remotes")
 remotes::install_github("josefin-werme/LAVA")
 ```
 
