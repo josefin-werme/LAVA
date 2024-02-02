@@ -34,7 +34,7 @@
 #' 
 #' @export
 
-process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, impute.grex=T) {
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, impute.grex=F) {
 	if (is.data.frame(locus) && nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a single locus at a time"); loc=NULL; return(NULL) }  # modified cdl 18/3
 	if (!(all(c("LOC","CHR","START","STOP") %in% names(locus)) | all(c("LOC","SNPS") %in% names(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
 	
@@ -227,7 +227,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	}
 	
 	# impute grex if requested
-	# TODO: add check in beginning to turn impute grex off if locus is not gene class?
+	# TODO: add check in beginning to only impute locus is gene class?
 	if(impute.grex) {
 	    loc$grex = G %*% loc$delta
 	}

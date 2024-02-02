@@ -29,7 +29,7 @@
 #' }
 #'
 #' @export
-process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "gtex_sqtl_v8", "gtex_v8"), tissue=NULL, chromosomes="all", is.sqtl=F) {
+process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "gtex_sqtl_v8", "gtex_v8"), tissue=NULL, chromosomes="all", is.sqtl=F, impute.grex=F) {
 	print("...Processing eQTL input info (preprocessed input)")
 
 	if (any(gwas.input$info$phenotype == "eqtl")) {print("Error: GWAS input already contains a phenotype 'eqtl'"); return(invisible(NULL))}
@@ -39,7 +39,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 
 	# check main files
 	check.folders.exist(c(eqtl.folder, paste0(eqtl.folder, "/annot")))
-    main.files = paste0(eqtl.folder, "/", prefix, ".", c("info", "snps.gz"))
+   main.files = paste0(eqtl.folder, "/", prefix, ".", c("info", "snps.gz"))
 	check.files.exist(main.files)
 	gwas.input$eqtl.files = list(
 		tissue.file = main.files[1],
@@ -68,7 +68,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 
  	# load SNP info file and check
 	print("...Reading in SNP information")
-    sumstats = data.table::fread(main.files[2],data.table=F)
+   sumstats = data.table::fread(main.files[2],data.table=F)
 	cols = c("SNP", "A1", "A2")
 	if (!all(cols %in% names(sumstats))) {print(paste0("Error: file '", main.files[2], "' missing columns: ", paste0(cols[!(cols %in% names(sumstats))], collapse=", "))); return(invisible(NULL))}
 	sumstats$STAT = 1; sumstats$N = NA
@@ -78,7 +78,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 	set.chromosomes(gwas.input, chromosomes);
 	
 	# insert eQTL as dummy phenotype into
-    print("...Merging eQTL data into existing GWAS input")
+   print("...Merging eQTL data into existing GWAS input")
 	type.name = ifelse(is.sqtl, "sqtl", "eqtl")
 	#gwas.input$P = gwas.input$P + 1; add.index = gwas.input$P
 	gwas.input$info[1,] = rep(NA, ncol(gwas.input$info))
@@ -91,16 +91,18 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 		gwas.input$sample.overlap = cbind(rbind(gwas.input$sample.overlap, 0), 0)
 		gwas.input$sample.overlap[add.index,add.index] = 1
 	}
-
+	
 	# TODO: CHECK what does add.index do in harmonize SNPs????
+	# it just selectively checks only the specified indices, so indeed not necessary here
 	gwas.input$sum.stats[[type.name]] = sumstats
-    #harmonize.snps(gwas.input, add.index) # subset all data sets to shared SNPs
-    harmonize.snps(gwas.input) # subset all data sets to shared SNPs
-
+   #harmonize.snps(gwas.input, add.index) # subset all data sets to shared SNPs
+   harmonize.snps(gwas.input) # subset all data sets to shared SNPs
+   
 #	align(gwas.input, add.index) # this multiplies the dummy constant 1 STAT column by -1 in case of misalignment, storing this in separate DIR column for later use
 	align(gwas.input) # this multiplies the dummy constant 1 STAT column by -1 in case of misalignment, storing this in separate DIR column for later use
-    gwas.input$sum.stats[[add.index]]$DIR = gwas.input$sum.stats[[add.index]]$STAT
-    gwas.input$sum.stats[[add.index]]$STAT = NA
+   gwas.input$sum.stats[[type.name]]$DIR = gwas.input$sum.stats[[type.name]]$STAT
+   gwas.input$sum.stats[[type.name]]$STAT = NA
+   # TODO: check why these used add.idx instead of type.name (which is used in gwas.input$sumstats above)
 
 	gwas.input$eqtl.tissues = info
 	gwas.input$eqtl.type = type.name
@@ -351,7 +353,7 @@ set.chromosomes = function(gwas.input, chromosomes) {
 #' }
 #'
 #' @export
-process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
+process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, impute.grex=T) {
 	if (!all(c("eqtl.genes", "eqtl.type") %in% names(eqtl.input)) || !any(eqtl.input$info$var.type == eqtl.input$eqtl.type)) {print("Error: eqtl.input is not configured for eQTL analysis"); return(invisible(NULL))}
 	if (eqtl.input$eqtl.preprocessed && is.null(eqtl.input$current.tissue)) {print("Error: no tissue initialized; run set.tissue function to load tissue data"); return(NULL)}
 
@@ -395,7 +397,7 @@ process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thre
 	class(locus) = "gene"
 
 	if (!is.null(phenos)) phenos = unique(c(phenos, eqtl.input$eqtl.type))
-	return(process.locus(locus, eqtl.input, phenos, min.K, prune.thresh, max.prop.K, drop.failed))
+	return(process.locus(locus, eqtl.input, phenos, min.K, prune.thresh, max.prop.K, drop.failed, impute.grex))
 }
 
 
