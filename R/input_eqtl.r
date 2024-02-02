@@ -39,7 +39,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 
 	# check main files
 	check.folders.exist(c(eqtl.folder, paste0(eqtl.folder, "/annot")))
-  main.files = paste0(eqtl.folder, "/", prefix, ".", c("info", "snps.gz"))
+    main.files = paste0(eqtl.folder, "/", prefix, ".", c("info", "snps.gz"))
 	check.files.exist(main.files)
 	gwas.input$eqtl.files = list(
 		tissue.file = main.files[1],
@@ -52,7 +52,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 	info = read.table(main.files[1], header=T, stringsAsFactors=F)
 	cols = c("tissue", "sampsize", "filename")
 	if (!all(cols %in% names(info))) {print(paste0("Error: file '", main.files[1], "' missing columns: ", paste0(cols[!(cols %in% names(info))], collapse=", "))); return(invisible(NULL))}
-
+    
 	info$filename = paste0(eqtl.folder, "/", info$filename)
 	has.tissue = file.exists(info$filename)
 	if (!all(has.tissue)) {
@@ -68,7 +68,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 
  	# load SNP info file and check
 	print("...Reading in SNP information")
-  sumstats = data.table::fread(main.files[2],data.table=F)
+    sumstats = data.table::fread(main.files[2],data.table=F)
 	cols = c("SNP", "A1", "A2")
 	if (!all(cols %in% names(sumstats))) {print(paste0("Error: file '", main.files[2], "' missing columns: ", paste0(cols[!(cols %in% names(sumstats))], collapse=", "))); return(invisible(NULL))}
 	sumstats$STAT = 1; sumstats$N = NA
@@ -76,28 +76,31 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 	# load gene annotation file into gwas.input (inserted as gwas.input$eqtl.genes)
 	print("...Reading in gene annotation file")
 	set.chromosomes(gwas.input, chromosomes);
-
+	
 	# insert eQTL as dummy phenotype into
-  print("...Merging eQTL data into existing GWAS input")
+    print("...Merging eQTL data into existing GWAS input")
 	type.name = ifelse(is.sqtl, "sqtl", "eqtl")
-	gwas.input$P = gwas.input$P + 1; add.index = gwas.input$P
-	gwas.input$info = rbind(gwas.input$info, NA)
-	gwas.input$info$phenotype[add.index] = type.name
-	gwas.input$info$binary[add.index] = FALSE
-	gwas.input$info$var.type = ""
-	gwas.input$info$var.type[1:gwas.input$P == add.index] = type.name
+	#gwas.input$P = gwas.input$P + 1; add.index = gwas.input$P
+	gwas.input$info[1,] = rep(NA, ncol(gwas.input$info))
+	gwas.input$info = gwas.input$info[1,]
+	gwas.input$info$phenotype = type.name
+	gwas.input$info$binary = FALSE
+	gwas.input$info$var.type = type.name
 
 	if (!is.null(gwas.input$sample.overlap)) {
 		gwas.input$sample.overlap = cbind(rbind(gwas.input$sample.overlap, 0), 0)
 		gwas.input$sample.overlap[add.index,add.index] = 1
 	}
 
+	# TODO: CHECK what does add.index do in harmonize SNPs????
 	gwas.input$sum.stats[[type.name]] = sumstats
-  harmonize.snps(gwas.input, add.index) # subset all data sets to shared SNPs
+    #harmonize.snps(gwas.input, add.index) # subset all data sets to shared SNPs
+    harmonize.snps(gwas.input) # subset all data sets to shared SNPs
 
-	align(gwas.input, add.index) # this multiplies the dummy constant 1 STAT column by -1 in case of misalignment, storing this in separate DIR column for later use
-  gwas.input$sum.stats[[add.index]]$DIR = gwas.input$sum.stats[[add.index]]$STAT
-  gwas.input$sum.stats[[add.index]]$STAT = NA
+#	align(gwas.input, add.index) # this multiplies the dummy constant 1 STAT column by -1 in case of misalignment, storing this in separate DIR column for later use
+	align(gwas.input) # this multiplies the dummy constant 1 STAT column by -1 in case of misalignment, storing this in separate DIR column for later use
+    gwas.input$sum.stats[[add.index]]$DIR = gwas.input$sum.stats[[add.index]]$STAT
+    gwas.input$sum.stats[[add.index]]$STAT = NA
 
 	gwas.input$eqtl.tissues = info
 	gwas.input$eqtl.type = type.name
@@ -361,8 +364,8 @@ process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thre
 	}
 
 	if (eqtl.input$eqtl.preprocessed) {
-		gene.index.curr = which(eqtl.input$current.stats$label == gene) #offset of input gene in tissue sumstats
-		gene.index.main = which(eqtl.input$eqtl.genes$name == eqtl.input$current.stats$gene.name[gene.index.curr]) #offset of input gene in main annotation
+		gene.index.curr = which(eqtl.input$current.stats$label == gene) # offset of input gene in tissue sumstats
+		gene.index.main = which(eqtl.input$eqtl.genes$name == eqtl.input$current.stats$gene.name[gene.index.curr]) # offset of input gene in main annotation
 
 		# convert SNP-gene mapping to indices
 		if (!eqtl.input$eqtl.genes$processed[gene.index.main]) {
@@ -371,7 +374,7 @@ process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thre
 		}
 		snp.index = eqtl.input$eqtl.genes$snps[[gene.index.main]] #offsets of SNPs in the gene in sum.stats data.frame (includes NAs)
 
-		#load summary statistics and define locus
+		# load summary statistics and define locus
 		zstat = as.numeric(strsplit(eqtl.input$current.stats$zstat[[gene.index.curr]], ";")[[1]])
 		if (length(zstat) != length(snp.index)) {print(paste0("Error: summary statistics for gene '", gene, "' are not consistent with gene annotation")); return(NULL)}
 		zstat = zstat * eqtl.input$sum.stats[[eqtl.input$eqtl.type]]$DIR[snp.index]

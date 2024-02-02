@@ -34,8 +34,7 @@
 #' 
 #' @export
 
-
-process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, impute.grex=T) {
 	if (is.data.frame(locus) && nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a single locus at a time"); loc=NULL; return(NULL) }  # modified cdl 18/3
 	if (!(all(c("LOC","CHR","START","STOP") %in% names(locus)) | all(c("LOC","SNPS") %in% names(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
 	
@@ -136,8 +135,9 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	K.max = length(keep) # K renamed to K.max after updating the fit.logistic() function; K is defined within while loop
 	if (K.max < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
 
-	# Define G/R for binary phenotypes (used by fit.logistic())
-	if (any(loc$binary)) { R = Q[,keep] %*% diag(1/sqrt(lambda[keep])); G = X %*% R } # NOTE: these are further subsetted within the fit.logistic() function if any PCs are dropped, so there is no need to subset again in the while loop
+	# Define G/R
+	# used by used by fit.logistic(), or when imputing / returning grex
+	if (any(loc$binary) || impute.grex) { R = Q[,keep] %*% diag(1/sqrt(lambda[keep])); G = X %*% R } # NOTE: these are further subsetted within the fit.logistic() function if any PCs are dropped, so there is no need to subset again in the while loop
 	
 	loc$sigma = loc$h2.obs = loc$h2.latent = rep(NA, loc$P); names(loc$sigma) = names(loc$h2.obs) = names(loc$h2.latent) = loc$phenos
 	dropped = c()	# any PCs that might be dropped by fit.logistic() due to instability
@@ -171,7 +171,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 				}
 			} else {
 				r = loc.sum[[i]]$STAT / sqrt(loc.sum[[i]]$STAT^2 + loc.sum[[i]]$N - 2)	# for continuous phenos, convert Z to r
-				alpha = Q[,keep] %*% diag(1/lambda[keep]) %*% t(Q[,keep]) %*% r 
+				alpha = Q[,keep] %*% diag(1/lambda[keep]) %*% t(Q[,keep]) %*% r
 				
 				loc$delta[,i] = diag(c(sqrt(lambda[keep]))) %*% t(Q[,keep]) %*% alpha	# using keep to filter out dropped PCs (since this one is updated every time a PC is dropped)
 				eta = t(r) %*% alpha; eta = (loc$N[i]-1) / (loc$N[i]-loc$K-1) * (1-eta)
@@ -201,7 +201,6 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	loc$omega = t(loc$delta)%*%loc$delta / loc$K - loc$sigma
 	loc$omega.cor = suppressWarnings(cov2cor(loc$omega))
 
-
 	# check if any phenos have negative sigma or omega;
 	neg.var = diag(loc$sigma) < 0 | diag(loc$omega) < 0;
 	failed = neg.var | is.na(neg.var)	#those that failed due to N < K or wsw.inversion will be NA in the neg.var variable
@@ -225,6 +224,12 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 		}
 	} else {
 		loc$failed = failed
+	}
+	
+	# impute grex if requested
+	# TODO: add check in beginning to turn impute grex off if locus is not gene class?
+	if(impute.grex) {
+	    loc$grex = G %*% loc$delta
 	}
 	return(loc)
 }
@@ -367,30 +372,33 @@ read.sumstats.file = function(filename, pheno.label, min.pval=1e-300, N.override
 
 
 process.sumstats = function(input) {
-	# check if input files exist
-	check.files.exist(input$info$filename)
-
-	# read in sumstats
-	print("...Reading in sumstats")
-	input$sum.stats = list()
-	for (i in 1:input$P) input$sum.stats[[i]] = read.sumstats.file(input$info$filename[i], input$info$phenotype[i])
-	names(input$sum.stats) = input$info$phenotype
+	# # check if input files exist
+	# check.files.exist(input$info$filename)
+	# 
+	# # read in sumstats
+	# print("...Reading in sumstats")
+	# input$sum.stats = list()
+	# for (i in 1:input$P) input$sum.stats[[i]] = read.sumstats.file(input$info$filename[i], input$info$phenotype[i])
+	# names(input$sum.stats) = input$info$phenotype
 	
 	# reference data bim/afreq file
 	print("...Reading in SNP info from reference data")
 	input$ref = read.bim.custom(input$ref.prefix, as.env=T)
 	input$ref$bim$snp.name = tolower(input$ref$bim$snp.name)		# setting ref SNPs tolower
 	
-	# get common SNPs
-	print("...Extracting common SNPs")
-	harmonize.snps(input)
-
-	# align SNPs
-	print("...Aligning effect alleles to reference data set")
-	align(input)
+	# # get common SNPs
+	# print("...Extracting common SNPs")
+	# harmonize.snps(input)
+	# 
+	# # align SNPs
+	# print("...Aligning effect alleles to reference data set")
+	# align(input)
+	
+	input$analysis.snps = input$ref$bim$snp.name
 	
 	return(input)
 }
+
 
 harmonize.snps = function(input, check.index=NULL) {
 	#determine common snps
