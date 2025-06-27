@@ -28,8 +28,8 @@
 #'     \item current.stats - summary statistics for the currently loaded tissue
 #' }
 #'
-#' @export
-process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "gtex_sqtl_v8", "gtex_v8"), tissue=NULL, chromosomes="all", is.sqtl=F) {
+#'
+process.eqtl.input.preprocessed = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "gtex_sqtl_v8", "gtex_v8"), tissue=NULL, chromosomes="all", is.sqtl=F) {
 	print("...Processing eQTL input info (preprocessed input)")
 
 	if (any(gwas.input$info$phenotype == "eqtl")) {print("Error: GWAS input already contains a phenotype 'eqtl'"); return(invisible(NULL))}
@@ -133,7 +133,7 @@ process.eqtl.input = function(gwas.input, eqtl.folder, prefix=ifelse(is.sqtl, "g
 #' }
 #'
 #' @export
-process.eqtl.text.input = function(gwas.input, eqtl.file.spec, chromosomes="all", sample.size=NULL) {
+process.eqtl.input = function(gwas.input, eqtl.file.spec, chromosomes="all", sample.size=NULL) {
 	print("...Processing eQTL input info (text input)")
 
 	if (any(gwas.input$info$phenotype == "eqtl")) {print("Error: GWAS input already contains a phenotype 'eqtl'"); return(invisible(NULL))}
@@ -187,7 +187,7 @@ process.eqtl.text.input = function(gwas.input, eqtl.file.spec, chromosomes="all"
 #'     \item current.stats - summary statistics for the currently loaded tissue
 #' }
 #'
-#' @export
+#'
 set.tissue = function(gwas.input, tissue) {
 	print(paste0("...Loading tissue '", tissue, "'"))
 	if (!is.null(gwas.input$eqtl.preprocessed) && !gwas.input$eqtl.preprocessed) {print("Error: eQTL data loaded into gwas.input does not support changing tissues"); return(invisible(NULL))}
@@ -221,7 +221,7 @@ set.tissue = function(gwas.input, tissue) {
 #'
 #' Load the eQTL gene annotation for the specified chromosomes into the gwas.input object. Previously loaded gene annotation is replaced
 #'
-#' @param gwas.input GWAS input object loaded using \code{\link{process.eqtl.input}} or \code{\link{process.eqtl.text.input}} (object is modified by function).
+#' @param gwas.input GWAS input object loaded using \code{\link{process.eqtl.input}} (object is modified by function).
 #'
 #' @param chromosomes Specifies which chromosomes to load the annotation data for (loading all chromosomes may be time-consuming).
 #' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).
@@ -233,7 +233,7 @@ set.tissue = function(gwas.input, tissue) {
 #'     \item current.genes - vector of genes available for the currently loaded tissue
 #' }
 #'
-#' @export
+#'
 set.chromosomes = function(gwas.input, chromosomes) {
 	if (is.null(gwas.input$eqtl.preprocessed)) {print("Error: gwas.input is not configured for eQTL analysis"); return(invisible(NULL))}
 
