@@ -302,76 +302,78 @@ meta.analyse.locus = function(locus, meta.phenos) {
 
 
 ### sum-stats read-in and processing functions ###
-format.pvalues = function(input, i, min.pval) {
-	input$sum.stats[[i]]$P = as.numeric(input$sum.stats[[i]]$P) # if p < numerical limits in R, they will be read in as char
-	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$P), ]		# remove NA pvalues
-	input$sum.stats[[i]]$P[input$sum.stats[[i]]$P < min.pval] = min.pval				# format zero p-values
+format.pvalues = function(pvals, min.pval) {
+	pvals = as.numeric(pvals) # if p < numerical limits in R, they will be read in as char
+	pvals[!is.na(pvals) & pvals < min.pval] = min.pval				# format zero p-values
+	return(pvals)
 }
 
-filter.n = function(input, i) {
-	input$sum.stats[[i]] = input$sum.stats[[i]][!is.na(input$sum.stats[[i]]$N),]		# remove missing N
-	input$sum.stats[[i]] = subset(input$sum.stats[[i]], N > 0)							# remove negative N
+format.z = function(zstats, min.pval) {
+	zstats = as.numeric(zstats)
+	inf.z = which(abs(zstats) > abs(qnorm(min.pval/2)))
+	zstats[inf.z] = abs(qnorm(min.pval/2)) * sign(zstats[inf.z]) # remove inf z scores
+	return(zstats)
 }
 
-format.z = function(input, i, min.pval) {
-	input$sum.stats[[i]]$STAT = as.numeric(input$sum.stats[[i]]$STAT)
-	inf.z = which(abs(input$sum.stats[[i]]$STAT) > abs(qnorm(min.pval/2))) 
-	input$sum.stats[[i]]$STAT[inf.z] = abs(qnorm(min.pval/2)) * sign(input$sum.stats[[i]]$STAT[inf.z]) # remove inf z scores
+
+read.sumstats.file = function(filename, pheno.label, min.pval=1e-300, N.override=NULL) {
+	# possible / required headers
+	headers = list(); headers$STAT = c("Z","T","STAT","Zscore"); headers$SNP = c("SNP","ID","SNPID_UKB","SNPID","MarkerName","RSID","RSID_UKB"); headers$B = c("B","BETA"); headers$A1=c("A1","ALT"); headers$A2=c("A2","REF")	 # header variations
+	if (is.null(N.override)) headers$N = c("N","NMISS","N_analyzed");
+
+	sum.stats = data.table::fread(filename, data.table=F)				# read in data
+
+	for (h in names(headers)) { 																# check for required headers and rename
+		if (sum(colnames(sum.stats) %in% headers[[h]])==0 & h!="STAT" & h!="B") { 	# skip check here for B/Z class headers
+			stop(paste0("No valid ",h," header in sumstats file for phenotype: '", pheno.label, "'"))
+		} else {
+			# check if there are more than one valid headers ()
+			if (sum(colnames(sum.stats) %in% headers[[h]]) > 1) { # if so, remove all but the first valid column and print warning
+				col.remove = colnames(sum.stats)[colnames(sum.stats) %in% headers[[h]]][-1]
+				sum.stats = sum.stats[,!colnames(sum.stats) %in% col.remove]
+				print(paste0("Warning: More than one valid ",h," header for phenotype: '", pheno.label, "'. Only retainig the first ('",colnames(sum.stats)[colnames(sum.stats) %in% headers[[h]]],"')."))
+			}
+			colnames(sum.stats)[colnames(sum.stats) %in% headers[[h]]] = h		# rename to standard header format
+		}
+	}
+	sum.stats$SNP = tolower(sum.stats$SNP)								# set SNP IDs to lower case
+
+	# convert effect sizes to Z if there are none already
+	if (! "STAT" %in% colnames(sum.stats)) {
+		effect.size = c("B","OR","logOdds")
+		param = effect.size[effect.size %in% colnames(sum.stats)][1]	# get relevant effect size parameter (takes first if multiple, e.g. both OR/logOdds)
+		# check that both param + P exist
+		if (is.na(param) | ! "P" %in% colnames(sum.stats)) {
+			stop(paste0("Lack of valid statistics provided (e.g. Z, T, or BETA/OR/logOdds + P) for phenotype: '", pheno.label, "'."))
+		} else {
+			# if so get the sign
+			if (param=="OR") { sign = ifelse(sum.stats[[param]] > 1, 1, -1) } else { sign = sign(sum.stats[[param]]) }
+		}
+		if (all(sign > 1)) { print("Warning: The signs of betas/logOdds are positive; are you sure you did not provide ORs? (if so, please use the appropriate header)") }
+
+		# get Z
+		Z = -qnorm(format.pvalues(sum.stats$P, min.pval)/2)
+		sum.stats$STAT = Z * sign
+	}
+	sum.stats$STAT = format.z(sum.stats$STAT, min.pval) # format Z stats (truncate out of range ones)
+	if (!is.null(N.override)) sum.stats$N = N.override
+
+	keep.col = c((if ("GENE" %in% names(sum.stats)) "GENE"),"SNP","A1","A2","STAT","N")
+	sum.stats = sum.stats[keep.col] 		# retain relevant columns
+	sum.stats = sum.stats[!apply(is.na(sum.stats), 1, any) & sum.stats$N > 0,] # filter missing values and negative sample sizes
+  return(sum.stats)
 }
+
+
 
 process.sumstats = function(input) {
-	min.pval = 1e-300
-	
 	# check if input files exist
 	check.files.exist(input$info$filename)
-	
-	# possible / required headers
-	headers = list(); headers$N = c("N","NMISS","N_analyzed"); headers$STAT = c("Z","T","STAT","Zscore"); headers$SNP = c("SNP","ID","SNPID_UKB","SNPID","MarkerName","RSID","RSID_UKB"); headers$B = c("B","BETA"); headers$A1=c("A1","ALT"); headers$A2=c("A2","REF")	 # header variations
-	
+
 	# read in sumstats
 	print("...Reading in sumstats")
 	input$sum.stats = list()
-	for (i in 1:input$P) {
-		input$sum.stats[[i]] = data.table::fread(input$info$filename[i],data.table=F)				# read in data
-		
-		for (h in names(headers)) { 																# check for required headers and rename
-			if (sum(colnames(input$sum.stats[[i]]) %in% headers[[h]])==0 & h!="STAT" & h!="B") { 	# skip check here for B/Z class headers
-				stop(paste0("No valid ",h," header in sumstats file for phenotype: '",input$info$phenotype[i],"'"))
-			} else {
-				# check if there are more than one valid headers ()
-				if (sum(colnames(input$sum.stats[[i]]) %in% headers[[h]]) > 1) { # if so, remove all but the first valid column and print warning
-					col.remove = colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]][-1]
-					input$sum.stats[[i]] = input$sum.stats[[i]][,!colnames(input$sum.stats[[i]]) %in% col.remove]
-					print(paste0("Warning: More than one valid ",h," header for phenotype: '",input$info$phenotype[i],"'. Only retainig the first ('",colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]],"')."))
-				}
-				colnames(input$sum.stats[[i]])[colnames(input$sum.stats[[i]]) %in% headers[[h]]] = h		# rename to standard header format
-			}
-		}
-		input$sum.stats[[i]]$SNP = tolower(input$sum.stats[[i]]$SNP)								# set SNP IDs to lower case
-		if ("P" %in% colnames(input$sum.stats[[i]])) { format.pvalues(input, i, min.pval) }			# format p-values
-		filter.n(input,i)																			# remove missing or negative N
-		
-		# convert effect sizes to Z if there are none already
-		if (! "STAT" %in% colnames(input$sum.stats[[i]])) {
-			effect.size = c("B","OR","logOdds")
-			param = effect.size[effect.size %in% colnames(input$sum.stats[[i]])][1]	# get relevant effect size parameter (takes first if multiple, e.g. both OR/logOdds)
-			# check that both param + P exist
-			if (is.na(param) | ! "P" %in% colnames(input$sum.stats[[i]])) {
-				stop(paste0("Lack of valid statistics provided (e.g. Z, T, or BETA/OR/logOdds + P) for phenotype: '",input$info$phenotype[i],"'."))
-			} else {
-				# if so get the sign
-				if (param=="OR") { sign = ifelse(input$sum.stats[[i]][[param]] > 1, 1, -1) } else { sign = sign(input$sum.stats[[i]][[param]]) }
-			}
-			if (all(sign > 1)) { print("Warning: The signs of betas/logOdds are positive; are you sure you did not provide ORs? (if so, please use the appropriate header)") }
-			
-			# get Z
-			Z = -qnorm(input$sum.stats[[i]]$P/2)
-			input$sum.stats[[i]]$STAT = Z * sign
-		}
-		format.z(input, i, min.pval) # format Z stats (truncate out of range ones)
-		
-		input$sum.stats[[i]] = input$sum.stats[[i]][c("SNP","A1","A2","STAT","N")] 		# retain relevant columns
-	}
+	for (i in 1:input$P) input$sum.stats[[i]] = read.sumstats.file(input$info$filename[i], input$info$phenotype[i])
 	names(input$sum.stats) = input$info$phenotype
 	
 	# reference data bim/afreq file

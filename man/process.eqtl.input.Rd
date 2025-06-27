@@ -2,42 +2,36 @@
 % Please edit documentation in R/input_eqtl.r
 \name{process.eqtl.input}
 \alias{process.eqtl.input}
-\title{Process eQTL input}
+\title{Process eQTL input from text input files}
 \usage{
 process.eqtl.input(
   gwas.input,
-  eqtl.folder,
-  prefix = "gtex_v8",
-  tissue = NULL,
-  chromosomes = "all"
+  eqtl.file.spec,
+  chromosomes = "all",
+  sample.size = NULL
 )
 }
 \arguments{
 \item{gwas.input}{GWAS input object generated using \code{\link{process.input}} (object is modified by function).}
 
-\item{eqtl.folder}{Folder containing the eQTL input files (format described in link above).}
+\item{eqtl.file.spec}{File name specifier for eQTL summary statistics input files, with a placeholder [CHR] to indicate the chromosome number in the file name; eg. "my_folder/eqtl.chr[CHR].stats"}
 
-\item{tissue}{If set, initializes the input object for analysis of the specified tissue. Equivalent to calling
-the \code{\link{set.tissue}} function after running process.eqtl.input().}
+\item{chromosomes}{Specifies which chromosomes to load the data for (loading all chromosomes may be time-consuming).
+Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).}
 
-\item{chromosomes}{Specifies which chromosomes to load the annotation data for (loading all chromosomes may be time-consuming).
-Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers (the X chromosome can be specified as 'X' or 23).}
-
-\item{file.prefix}{Prefix of primary input files.}
+\item{sample.size}{If set, used as sample size value for each SNP in the input files instead of N column.}
 }
 \value{
-No return value, the gwas.input argument is modified in place. An 'eqtl' phenotype is added to the existing gwas.input structure, and the following
-fields are added. Note that if the 'tissue' argument is not set, \code{\link{set.tissue}} must be called on 'gwas.input' to fully initialize the input object for analysis.
+No return value, the gwas.input argument is modified in place. An 'eqtl' phenotype is added into the existing gwas.input structure, and the following
+fields are added to gwas.input.
 \itemize{
-    \item eqtl.files - list of all the file names and folders used
-    \item eqtl.genes - list containing the names and mapped SNPs for all genes in the eQTL data set
-    \item eqtl.tissues - data.frame with all the available tissues
-    \item current.tissue - name of the currently loaded tissue (NULL if not set yet)
     \item current.chromosomes - list of currently loaded chromosomes
-    \item current.genes - vector of genes available for the currently loaded tissue
-    \item current.stats - summary statistics for the currently loaded tissue
+    \item current.genes - vector of available genes
+    \item current.stats - summary statistics for all loaded genes
 }
 }
 \description{
-Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input. See https://ctg.cncr.nl/software/lava for preformatted GTEx v8 input files and details on the formatting of the input files.
+Modifies the GWAS input object, appending eQTL (or sQTL) summary statistics and gene annotation to an existing GWAS input from plain-text input files. Input files should follow the same format
+as summary statistics input files for other phenotypes, with an additional column GENE to indicate which gene the association results on each line belong to. Input files must be provided separately
+per chromosome.
 }

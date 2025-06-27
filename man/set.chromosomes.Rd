@@ -7,10 +7,10 @@
 set.chromosomes(gwas.input, chromosomes)
 }
 \arguments{
-\item{gwas.input}{GWAS input object preprocessed using \code{\link{process.eqtl.input}} (object is modified by function).}
+\item{gwas.input}{GWAS input object loaded using \code{\link{process.eqtl.input}} (object is modified by function).}
 
 \item{chromosomes}{Specifies which chromosomes to load the annotation data for (loading all chromosomes may be time-consuming).
-Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers (the X chromosome can be specified as 'X' or 23).}
+Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).}
 }
 \value{
 No return value, the gwas.input argument is modified in place. The following fields are changed

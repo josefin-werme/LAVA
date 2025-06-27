@@ -1,17 +1,16 @@
 ---
-title: "LAVA TUTORIAL"
+title: "LAVA DOCUMENTATION"
 author: "Josefin Werme (j.werme@vu.nl), Christiaan de Leeuw (c.a.de.leeuw@vu.nl), CTG Lab, VU Amsterdam"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::github_document:
-    math_method: NULL
 vignette: >
   %\VignetteIndexEntry{tutorial}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-This tutorial shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
+The documentation and tutorial below shows you how to read in and analyse data with LAVA (**L**ocal **A**nalysis of [co]**V**ariant **A**ssociation): A tool developed for local genetic correlation (*r*~g~) analysis.
 
 LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (binary as well as continuous), and account for known or estimated sample overlap. It can also test the univariate local genetic signal for all phenotypes of interest (i.e. the local *h*^2^), which may be used to filter out non-associated loci. In addition, it can model the local genetic relations between multiple phenotypes simultaneously using two possible conditional models: partial correlation and multiple regression (for more details, see the [LAVA paper](https://www.nature.com/articles/s41588-022-01017-y)).
 
@@ -28,23 +27,27 @@ knitr::opts_chunk$set(
 
 ## Installing LAVA
 
-To read in the genotype data, LAVA uses functions from the snpStats packge. As this package needs to be installed using BiocManager, you should do so before installing LAVA
+To read in the genotype data, LAVA uses functions from the snpStats package. As this package needs to be installed using BiocManager, you should do so before installing LAVA
 
 ```{r, eval=F}
-install.packages("BiocManager")
+if (!require("BiocManager", quietly=T)) install.packages("BiocManager")
 BiocManager::install("snpStats")
 ```
 
 LAVA can be installed directly from github using the following command; add the argument 'build_vignettes=TRUE' to also install the vignettes (this may require installing Pandoc first, if not yet available on your system):
 
 ```{r, eval=F}
-install.packages("remotes")
+if (!require("remotes", quietly=T)) install.packages("remotes")
 remotes::install_github("josefin-werme/LAVA")
 ```
 
 After installation, load the LAVA library to use it:
 
-```{r, message=F}
+```{r, echo=F}
+suppressMessages(devtools::load_all(".", export_all=F, quiet=T))
+```
+
+```{r, eval=F}
 library(LAVA)
 ```
 
@@ -122,7 +125,9 @@ input$sample.overlap  # sample overlap file
 
 
 head(input$ref$bim)   # bim file from reference data
-  
+
+```
+```{r, eval=F}
 # read more about this function
 ?process.input()
 ```
@@ -137,8 +142,12 @@ Before analysing the genetic correlation at a locus, we need to convert the marg
 ### Read in locus info file
 loci = read.loci("vignettes/data/test.loci")
 head(loci)  # inspect the locus file
+```
+```{r, eval=F}
 ?read.loci  # read more about the function and possible data formats
 
+```
+```{r}
 ### Create a locus object for the first locus to prepare it for analysis
 locus = process.locus(loci[1,], input)
 ```
@@ -149,11 +158,11 @@ If we inspect the locus object, we can see that it contains a lot of info about 
 
 -   The number of SNPs ('n.snps') / PCs ('K') within the locus
 
--   The (estimated) PC projected joint SNP effects, $\delta$ ('delta')
+-   The estimated PC projected joint SNP effects, $\hat{\delta}$ ('delta')
 
--   The sampling covariance $\sigma^2$ ('sigma')
+-   The estimated sampling covariance matrix $\hat{\Sigma}$ ('sigma')
 
--   The genetic covariance matrix $\Omega = t(\delta)'\delta / K-\sigma^2$ ('omega') with corresponding correlation matrix $\Omega^*$ ('omega.cor')
+-   The estimated genetic covariance matrix $\hat{\Omega} = \hat{\delta}^T\hat{\delta} / K-\hat{\Sigma}$ ('omega') with corresponding correlation matrix $\hat{\Omega}^*$ ('omega.cor')
 
 ```{r, eval=F}
 ls(locus)                               # inspect locus
@@ -163,7 +172,8 @@ locus$n.snps                            # N snps
 locus$omega                             # genetic covariance matrix
 locus$omega.cor                         # standardised genetic covariance matrix
 locus$phenos							# locus phenotypes
-
+```
+```{r, eval=F}
 ?process.locus  # find our more details in the function documentation
 ```
 
@@ -210,8 +220,12 @@ Additionally, should you only be interested in the *r*~g~'s between one target p
 
 ```{r}
 run.bivar(locus, target="bmi")
-# ?run.bivar  # check the function description for more options
+
 ```
+```{r eval=F}
+?run.bivar  # check the function description for more options
+```
+
 
 *[ Note that as we use a simulation procedure to obtain the p-values and confidence intervals here, the results might differ slightly between different runs ]*
 
@@ -312,6 +326,45 @@ run.pcor(locus, target=c("hypothyroidism","diabetes"))
 
 ------------------------------------------------------------------------
 
+## Analysis of eQTL input
+
+LAVA can also be used in conjunction with eQTL input data to estimate and test local genetic correlations of phenotypes with the gene expression of specific genes, akin to TWAS, and additional input processing functions have been provided to facilite this.
+
+To perform the analysis, first run the process.input() function as described above to load the summary statistics for all non-eQTL input phenotypes. The resulting `input` object returned by process.input() is then run through a secondary eQTL input processing function to add the eQTL summary statistics to it.
+
+
+### Loading input
+
+The eQTL summary statistics should be provided in general data files, which should have the same format as the input files for regular phenotypes, plus an additional **GENE** column indicating which gene the SNP associations on each line belong to. Input files must be provided separately for each chromosome, with file names that are identical except for the chromosome code. Data is loaded as follows:
+
+```{r, eval=F}
+process.eqtl.input(input, "data/eqtl_text/whole_blood.chr[CHR].stats", chromosomes=14, sample.size=750)
+```
+
+The second argument of process.eqtl.input() specifies the eQTL file format, with the `[CHR]` a placeholder for the chromosome code; in this case, LAVA will look for the file `data/eqtl_text/whole_blood.chr14.stats`. The sample.size argument is optional, and can be omitted if a sample size column is present in the input files.
+
+### Performing the analysis
+
+After loading the eQTL data into the `input` object, analysis can be performed by generating a locus object for the gene to be analysed:
+
+```{r, eval=F}
+locus = process.eqtl.locus("ENSG00000005700.14", input)
+```
+
+This function works the same way as process.locus(), except that the first argument should specify a gene rather than a locus. Genes can be specified either by name (as above) or by numeric index, and the list of all loaded genes is stored in `input$current.genes`. Subsequent analysis on the `locus` object is performed in the same way as in a regular LAVA analysis, and so a simple analysis script would look something like:
+
+```{r, eval=F}
+for (i in 1:length(input$current.genes)) {
+  locus = process.eqtl.locus(i, input)
+  univ = run.univ(locus)
+  bivar = run.bivar(locus)
+  
+  # ...
+}
+```
+
+------------------------------------------------------------------------
+
 ## Example analysis script for running bivariate *r*~g~ analysis across all genomic loci
 
 If you are interested in analysing the bivariate local *r*~g~'s between a large amount of phenotypes, we advice using a cluster computer. The example analysis script below shows how you might set up an R script that can be called from the command line, analysing the local *r*~g~'s across all loci in the locus file.
@@ -368,6 +421,6 @@ write.table(do.call(rbind,b), paste0(out.fname,".bivar.lava"), row.names=F,quote
 print(paste0("Done! Analysis output written to ",out.fname,".*.lava"))
 ```
 
-------
+------------------------------------------------------------------------
 
 For more elaborate scripts intended for whole genome bivariate rg analyses on a SLURM cluster (which also **parallelise** across loci), please see the cluster_setup/scripts folder here: <https://surfdrive.surf.nl/files/index.php/s/rtmNm8YZERGwl7f>

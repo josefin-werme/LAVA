@@ -54,7 +54,8 @@ conditional.norm = function(obs, means, sds) {
 # single indices x and y, vector of indices z
 partial.cor = function(omega, x, y, z) {
 	p.cov = partial.cov(omega, x, y, z)
-	return(p.cov/sqrt(partial.var(omega, x, z) * partial.var(omega, y, z)))
+	p.vars = c(partial.var(omega, x, z), partial.var(omega, y, z))
+	return(ifelse(all(p.vars > 0), p.cov/sqrt(prod(p.vars)), NA))
 }
 
 # single indices x and y, vector of indices z
