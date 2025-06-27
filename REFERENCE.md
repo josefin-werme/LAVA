@@ -28,7 +28,7 @@ wget https://vu.data.surfsara.nl/index.php/s/DQqJ2Sqr49RP4xe/download -O lava-uk
 wget https://vu.data.surfsara.nl/index.php/s/U8eg5XfTr8qPzPp/download -O lava-ukb-v1.1_chr17-23.zip
 ``` 
 
-
+<br/>
 
 ### 1,000 Genomes reference genotype data in PLINK format
 
