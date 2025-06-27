@@ -3,3 +3,6 @@
 .RData
 .Rproj
 .Rproj.user
+.o
+.so
+.dll
