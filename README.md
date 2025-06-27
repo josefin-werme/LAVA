@@ -29,7 +29,7 @@ reference files, and LD reference based on a large UK Biobank cohort is
 now available for use with LAVA (linked below). We **strongly**
 recommend that users switch to using the UK Biobank reference instead of
 1,000 Genomes for any analysis of European ancestry data, as use of the
-1,000 Genomes data has been found \[TODO: preprint link\] to lead to
+1,000 Genomes data has been found ***\[TODO: preprint link\]*** to lead to
 possible inflation of type 1 error rates and bias in the local
 heritability estimates.
 
