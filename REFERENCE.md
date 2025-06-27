@@ -7,13 +7,13 @@ up to a distance of 10 megabases for each SNP. Total filesize is 15 Gb (unzipped
 <br/><br/>
   
 **Download links:**
-- [Chromosomes 1,2](https://vu.data.surfsara.nl/index.php/s/7NBVIvtPRdu7Qhz/download)
-- [Chromosomes 3,4](https://vu.data.surfsara.nl/index.php/s/fy6ITboMojHrQXr/download)  
-- [Chromosomes 5,6](https://vu.data.surfsara.nl/index.php/s/mRz31q0lq7KMcuI/download)  
-- [Chromosomes 7-9](https://vu.data.surfsara.nl/index.php/s/89RXxPN2BlOqxLs/download)  
-- [Chromosomes 10-12](https://vu.data.surfsara.nl/index.php/s/3dU1L2Hap43xuCs/download)  
-- [Chromosomes 13-16](https://vu.data.surfsara.nl/index.php/s/DQqJ2Sqr49RP4xe/download)  
-- [Chromosomes 17-22 and X](https://vu.data.surfsara.nl/index.php/s/U8eg5XfTr8qPzPp/download)  
+- [Chromosomes 1, 2](https://vu.data.surfsara.nl/index.php/s/7NBVIvtPRdu7Qhz/download)
+- [Chromosomes 3, 4](https://vu.data.surfsara.nl/index.php/s/fy6ITboMojHrQXr/download)  
+- [Chromosomes 5, 6](https://vu.data.surfsara.nl/index.php/s/mRz31q0lq7KMcuI/download)  
+- [Chromosomes 7 - 9](https://vu.data.surfsara.nl/index.php/s/89RXxPN2BlOqxLs/download)  
+- [Chromosomes 10 - 12](https://vu.data.surfsara.nl/index.php/s/3dU1L2Hap43xuCs/download)  
+- [Chromosomes 13 - 16](https://vu.data.surfsara.nl/index.php/s/DQqJ2Sqr49RP4xe/download)  
+- [Chromosomes 17 - 22 and X](https://vu.data.surfsara.nl/index.php/s/U8eg5XfTr8qPzPp/download)  
 
 <br/>
 
