@@ -64,7 +64,7 @@ directory*
 
   - e.g. [1000 genomes](https://www.internationalgenome.org/data/)
     (pre-processed input files can be found
-    [here](https://ctg.cncr.nl/software/magma))
+    [here](https://cncr.nl/research/lava/))
 
 - **Input info file**, used for convenient processing of multiple
   phenotypes. Requires the columns:
