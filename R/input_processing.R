@@ -35,7 +35,7 @@
 #' @export
 
 
-process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, max.block.size=3000, cap.estimates=T) {
 	if (is.data.frame(locus) && nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a single locus at a time"); loc=NULL; return(NULL) }  # modified cdl 18/3
 	if (!(all(c("LOC","CHR","START","STOP") %in% names(locus)) | all(c("LOC","SNPS") %in% names(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
 	
@@ -64,138 +64,101 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 		}
 	} else {
 		# if not, use bim file coordinates
-		loc$snps = tolower(input$ref$bim$snp.name[input$ref$bim$chromosome == loc$chr & input$ref$bim$position >= loc$start & input$ref$bim$position <= loc$stop])
+		loc$snps = input$reference$snp.info$SNP[input$reference$snp.info$CHR == loc$chr & input$reference$snp.info$POS >= loc$start & input$reference$snp.info$POS <= loc$stop]
 	}
 	# subset to SNPs that passed input processing (i.e. exists across data sets + were aligned)
 	loc$snps = unique(intersect(input$analysis.snps, loc$snps))	# taking unique in case there are duplicates in loc$snps; using to intersect() to ensure order is same as reference data set
 	
-	# check that no. SNPs > min.K
-	loc$n.snps = length(loc$snps)
+
+	# load LD data
+	ld = read.ld(input$reference, loc$snps, require.freq=any(loc$binary))
+	if (!all(ld$info$SNP %in% loc$snps)) stop("inconsistency in loaded SNPs")
+	
+	loc$snps = ld$info$SNP; loc$n.snps = length(loc$snps)
 	if (loc$n.snps < min.K) { print(paste("Fewer than",min.K,"SNPs in locus",loc$id)); loc=NULL; return(NULL) }
-	
-	# read in genotype data (only locus SNPs)
-	X = read.plink.custom(input$ref.prefix, df.bim=input$ref, select.snps=loc$snps)
-	X = as(X$genotypes, "numeric")
-	X = scale(X)			# standardise
-	X[is.na(X)] = 0			# mean imputation for missing data
-	X = scale(X)
-	N.ref = nrow(X)
-	
-	# remove non variant SNPs
-	non.var = apply(X, 2, function(x) all(is.na(x)))
-	if(any(non.var)) {
-		X = X[,!non.var]
-		loc$snps = loc$snps[!non.var]
-	}
-	
-	# check that order of SNPs match
-	if (!all(tolower(colnames(X))==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between reference data and analysis SNPs in locus", loc$id,". Please contact developer.")) } # this should never be triggered, but just in case
-	
-	# prune redundant PCs
-	svd = try(svd(X), silent=T)					# try svd
-	if (class(svd)=="try-error") { svd = try(svd(X), silent=T) } 	# if fails, try again (some randomness causing error occasionally)
-	if (class(svd)=="try-error") {					# if it fails again, do eig
-		eig = eigen(cor(X))
-		lambda = eig$values
-		Q = eig$vectors
-	} else {
-		lambda = svd$d * svd$d / (N.ref-1)
-		Q = svd$v
-	}
-	cum.perc = cumsum(lambda / sum(lambda) * 100)
-	keep = 1:min(which(cum.perc >= prune.thresh))
-	
-	# Check remaining nr of PCs
-	K.max = length(keep) # K renamed to K.max after updating the fit.logistic() function; K is defined within while loop
-	if (K.max < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
-	
+
 	# Subset sum-stats and get locus N
-	loc.sum = list(); loc$N = rep(NA, loc$P); names(loc$N) = loc$phenos
+	loc.sum = list(); loc$N = rep(NA, loc$P); names(loc$N) = loc$phenos; drop.snps = c()
 	for (i in loc$phenos) {
 		# subset sumstats to locus SNPs
 		loc.sum[[i]] = input$sum.stats[[i]][input$sum.stats[[i]]$SNP %in% loc$snps,]
 		if (!all(loc.sum[[i]]$SNP==loc$snps)) { stop(paste0("Program Error: Mismatching SNP order between sum-stats and reference data for locus", loc$id,". Please contact developer.")) }	# this should never be triggered, but just in case
+		
 		# get N
 		loc$N[i] = mean(loc.sum[[i]]$N, na.rm=T)	# get mean locus N (for sumstats i)
 		if (is.na(loc$N[i])) { loc$N[i] = mean(input$sum.stats[[i]]$N, na.rm=T) }	# if all are NA, set to mean N across all SNPs in sumstats
 		loc.sum[[i]]$N[is.na(loc.sum[[i]]$N)] = loc$N[i]	# use mean imputation any for missing per SNP N 
+		
+		# compute marginal correlations
+		if (loc$binary[i]) {
+			loc.sum[[i]]$CORR = process.binary(loc.sum[[i]]$STAT, loc.sum[[i]]$N, ld$info$FREQ, input$info$prop_cases[input$info$phenotype == i])
+			miss = is.na(loc.sum[[i]]$CORR)
+			if (any(miss)) {
+				add = loc$snps[miss]; drop.snps = c(drop.snps, add)
+				print(paste0("Warning: Unable to reconstruct marginal SNP statistics for binary phenotype '", loc$phenos[i] , "' in locus ", loc$id, " for SNP(s) ", paste0(add, collapse=", "), "; Dropping these as they cannot be analysed")) 
+			}
+		} else {
+			loc.sum[[i]]$CORR = loc.sum[[i]]$STAT / sqrt(loc.sum[[i]]$STAT^2 + loc.sum[[i]]$N - 2)	# convert Z to r	
+		}
+	}
+	
+	if (length(drop.snps) > 0) {
+		keep = !(loc$snps %in% drop.snps)
+		loc$snps = loc$snps[keep]; loc$n.snps = length(loc$snps)
+		if (loc$n.snps < min.K) { print(paste("Fewer than",min.K,"SNPs in locus",loc$id)); loc=NULL; return(NULL) }
+		
+		ld$info = ld$info[keep,]
+		if (ld$mode == "plink") ld$data = ld$data[, keep, drop=F]
+		else ld$ld = ld$ld[keep, keep, drop=F]
+		
+		for (i in loc$phenos) loc.sum[[i]] = loc.sum[[i]][keep,]
 	}
 
+
+	# decompose
+	R = decompose.ld(ld, prune.thresh, max.block.size)
+	
 	# cap the number of PCs at a proportion of the (lowest) GWAS input sample size (cdl 16/3)
 	if (!is.null(max.prop.K) && !is.na(max.prop.K)) {
 		max.K = floor(max.prop.K * min(loc$N))
 		if (max.K < min.K) max.K = min.K #min.K setting takes precedence if in conflict
-		if (length(keep) > max.K) {
-			keep = keep[1:max.K]
-			Q = Q[,keep]
-			lambda = lambda[keep]
+		if (ncol(R) > max.K) R = R[,1:max.K]
+	}
+		
+	# Check remaining nr of PCs 
+	loc$K = ncol(R)
+	if (loc$K < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
+		
+
+	loc$sigma = loc$h2.obs = loc$h2.latent = rep(NA, loc$P); loc$ascertained.h2 = rep(F, loc$P); names(loc$sigma) = names(loc$h2.obs) = names(loc$h2.latent) = names(loc$ascertained.h2) = loc$phenos
+	loc$delta = matrix(NA, loc$K, loc$P); colnames(loc$delta) = loc$phenos 
+
+	for (i in loc$phenos) {
+		loc$delta[,i] = t(R) %*% loc.sum[[i]]$CORR 
+
+		eta = sum(loc$delta[,i]^2); eta = (loc$N[i]-1) / (loc$N[i]-loc$K-1) * (1-eta)
+		loc$sigma[i] = eta/(loc$N[i]-1)
+		loc$h2.obs[i] = 1 - eta
+		
+		if (loc$binary[i]) {
+			case.proportion = input$info$prop_cases[input$info$phenotype == i]
+			prevalence = if (!is.null(input$info$prevalence)) input$info$prevalence[input$info$phenotype == i]
+			if (!is.null(prevalence) && is.finite(prevalence)) loc$ascertained.h2[i] = TRUE # Lee et al. 2011, formula 23
+			else prevalence = case.proportion # fall back to Lee et al. 2011, formula 17
+			
+			loc$h2.latent[i] = loc$h2.obs[i] / dnorm(qnorm(prevalence))^2 * (prevalence * (1 - prevalence))^2 / (case.proportion * (1 - case.proportion))
 		}
 	}
 
-	# Check remaining nr of PCs (moved down, cdl 16/3)
-	K.max = length(keep) # K renamed to K.max after updating the fit.logistic() function; K is defined within while loop
-	if (K.max < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
-
-	# Define G/R for binary phenotypes (used by fit.logistic())
-	if (any(loc$binary)) { R = Q[,keep] %*% diag(1/sqrt(lambda[keep])); G = X %*% R } # NOTE: these are further subsetted within the fit.logistic() function if any PCs are dropped, so there is no need to subset again in the while loop
-	
-	loc$sigma = loc$h2.obs = loc$h2.latent = rep(NA, loc$P); names(loc$sigma) = names(loc$h2.obs) = names(loc$h2.latent) = loc$phenos
-	dropped = c()	# any PCs that might be dropped by fit.logistic() due to instability
-	
-	while (T) {
-		keep = which(!(1:K.max %in% dropped))
-		loc$K = length(keep)
-		if (loc$K < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
-		
-		loc$delta = matrix(NA, loc$K, loc$P); colnames(loc$delta) = loc$phenos # this needs to be defined in here so it updates to right size if further PCs dropped
-		rerun = F # will be set to true in case additional PCs dropped during 1:P loop by fit.logistic
-		
-		for (i in loc$phenos) {
-			if (loc$binary[i]) {
-				fit = fit.logistic(G, X, R, loc$N[i], subset(input$info,phenotype==i)$prop_cases, loc.sum[[i]]$STAT, loc.sum[[i]]$N, phen.id=i, loc.id=loc$id, dropped=dropped)
-				if (is.na(fit[1])) { warning(paste0("Multiple logistic regression model for phenotype '",i,"' in locus ",loc$id," failed to converge (inversion error)")); next() }
-				
-				# the fit$dropped vector contains IDs of all dropped PCs, including by other phenotypes (or by the same phenotype earlier), so checking here if it got longer
-				# if so, this will break out of the current for-loop and re-process all phenotypes with the new dropped vector
-				if (length(fit$dropped) > length(dropped)) {
-					dropped = fit$dropped
-					rerun = T; break
-				}
-				loc$delta[,i] = fit$beta
-				loc$sigma[i] = fit$var
-				loc$h2.obs[i] = fit$h2.obs
-				
-				# compute h2 if pop prevalence info is provided
-				if (!is.null(input$info$prevalence)) {
-					loc$h2.latent[i] = fit$h2.obs * (subset(input$info,phenotype==i)$prevalence * (1-subset(input$info,phenotype==i)$prevalence) / dnorm(qnorm(subset(input$info,phenotype==i)$prevalence))^2)
-				}
-			} else {
-				r = loc.sum[[i]]$STAT / sqrt(loc.sum[[i]]$STAT^2 + loc.sum[[i]]$N - 2)	# for continuous phenos, convert Z to r
-				alpha = Q[,keep] %*% diag(1/lambda[keep]) %*% t(Q[,keep]) %*% r 
-				
-				loc$delta[,i] = diag(c(sqrt(lambda[keep]))) %*% t(Q[,keep]) %*% alpha	# using keep to filter out dropped PCs (since this one is updated every time a PC is dropped)
-				eta = t(r) %*% alpha; eta = (loc$N[i]-1) / (loc$N[i]-loc$K-1) * (1-eta)
-				loc$sigma[i] = eta/(loc$N[i]-1)
-				
-				# get h2
-				loc$h2.obs[i] = 1 - (1 - t(loc$delta[,i]) %*% loc$delta[,i]) * ((loc$N[i]-1) / (loc$N[i]-loc$K-1))
-			}
-		}
-		if (!rerun) break # end while loop
-	}
 	if (loc$P > 1) { loc$sigma = diag(loc$sigma) }; if (!is.null(input$sample.overlap)) { loc$sigma = sqrt(loc$sigma) %*% as.matrix(input$sample.overlap[loc$phenos,loc$phenos]) %*% sqrt(loc$sigma) } # if P > 1 is just because the diag() doesn't work for single phenotype
 	loc$sigma = as.matrix(loc$sigma); dimnames(loc$sigma) = rep(list(loc$phenos),2)
 	
 	# cap any negative h2's at 0
-	loc$h2.obs[loc$h2.obs<0] = 0
-	loc$h2.latent[loc$h2.latent<0] = 0
-
+	if (cap.estimates) {for (var in grep("^h2", names(loc), value=T)) loc[[var]][loc[[var]] < 0] = 0}
+	
 	# remove h2's if K/N ratio too high (cdl 22/3)
 	thresh.ratio = 0.1
-	if (any(loc$K / loc$N > thresh.ratio)) {
-		loc$h2.obs[loc$K/loc$N > thresh.ratio] = NA
-		loc$h2.latent[loc$K/loc$N > thresh.ratio] = NA
-	}
+	if (any(loc$K / loc$N > thresh.ratio)) {for (var in grep("^h2", names(loc), value=T)) loc[[var]][loc$K/loc$N > thresh.ratio] = NA}
 
 	# get full omega
 	loc$omega = t(loc$delta)%*%loc$delta / loc$K - loc$sigma
@@ -214,7 +177,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 		if (any(failed)) {
 			if (all(failed)) { print(paste0("Error: Processing of all phenotypes in locus ",loc$id," failed (see preceeding warning messages for details)")); loc=NULL; return(NULL) }
 
-			for (var in c("N","binary","phenos","h2.obs","h2.latent")) { loc[[var]] = loc[[var]][!failed] }	 # vectors
+			for (var in c("N","binary","phenos","h2.obs","h2.latent", "ascertained.h2")) { loc[[var]] = loc[[var]][!failed] }	 # vectors
 
 			loc$delta = as.matrix(loc$delta[,!failed]); colnames(loc$delta) = loc$phenos	# delta
 
@@ -228,6 +191,58 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	}
 	return(loc)
 }
+
+
+decompose.ld = function(ld, prune.thresh, max.block.size) {
+	if (ld$mode == "plink") {
+		X = scale(ld$data); X[is.na(X)] = 0; X = scale(X) 	
+		N.ref = nrow(X)
+		
+		svd = try(svd(X), silent=T)					# try svd
+		if (class(svd) == "try-error") { svd = try(svd(X), silent=T) } 	# if fails, try again (some randomness causing error occasionally)
+		if (class(svd) != "try-error") {					
+			lambda = svd$d * svd$d / (N.ref-1)
+			Q = svd$v
+		} else { # if it fails again, fall back to direct decomposition
+			ld$ld = cor(X)
+			ld$mode = "ld"
+			return(decompose.ld(ld, prune.thresh, max.block.size))
+		}
+	} else {
+		no.snps = ncol(ld$ld)
+		if (no.snps > max.block.size) {
+			no.blocks = ceiling(no.snps / max.block.size)
+			index = sort(rep(1:no.blocks, length.out = no.snps))
+			
+			R.base = NULL
+			for (i in 1:no.blocks) {
+				curr = which(index == i); M = ld$ld[curr,curr] 
+				R.curr = decompose.ld(list(ld = M, mode = "ld"), prune.thresh, max.block.size=Inf)
+				add = matrix(0, nrow=no.snps, ncol=ncol(R.curr)); add[curr,] = R.curr
+				R.base = cbind(R.base, add)
+			}
+			
+			M = t(R.base) %*% ld$ld %*% R.base
+			R.block = decompose.ld(list(ld = M, mode = "ld"), prune.thresh, 2*max.block.size)
+			return(R.base %*% R.block)
+		} else {
+			decomp = eigen(ld$ld)
+			lambda = decomp$values
+			Q = decomp$vectors
+		}
+	}
+		
+	cum.perc = cumsum(lambda / sum(lambda) * 100)
+	K = min(which(cum.perc >= prune.thresh))
+	return(Q[,1:K] %*% diag(1/sqrt(lambda[1:K])))
+}
+	
+			
+	
+
+
+
+
 
 
 
@@ -378,8 +393,7 @@ process.sumstats = function(input) {
 	
 	# reference data bim/afreq file
 	print("...Reading in SNP info from reference data")
-	input$ref = read.bim.custom(input$ref.prefix, as.env=T)
-	input$ref$bim$snp.name = tolower(input$ref$bim$snp.name)		# setting ref SNPs tolower
+	input$reference = load.reference(input$reference)
 	
 	# get common SNPs
 	print("...Extracting common SNPs")
@@ -394,7 +408,7 @@ process.sumstats = function(input) {
 
 harmonize.snps = function(input, check.index=NULL) {
 	#determine common snps
-	input$analysis.snps = intersect(input$ref$bim$snp.name, input$sum.stats[[1]]$SNP)	# all SNPs will be ordered according to bim file
+	input$analysis.snps = intersect(input$reference$snp.info$SNP, input$sum.stats[[1]]$SNP)	# all SNPs will be ordered according to bim file
 	if (input$P>1) {
 		if (is.null(check.index)) check.index = 2:input$P
 		for (i in check.index) { input$analysis.snps = intersect(input$analysis.snps, input$sum.stats[[i]]$SNP) }
@@ -402,7 +416,7 @@ harmonize.snps = function(input, check.index=NULL) {
 	if (length(input$analysis.snps) < 3) { stop("Less than 3 SNPs shared across data sets; make sure you have matching SNP ID formats across sumstats / reference data sets")
 	} else { print(paste("...",length(input$analysis.snps),"SNPs shared across data sets")) }
 
-	if (!all(input$ref$bim$snp.name[input$ref$bim$snp.name %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
+	if (!all(input$reference$snp.info$SNP[input$reference$snp.info$SNP %in% input$analysis.snps] == input$analysis.snps)) { stop("Program Error: SNPs not ordered according to reference after subsetting. Please contact developer.") }
 
 	# subset sumstats to common snps
 	for (i in 1:input$P) {
@@ -419,7 +433,8 @@ process.sample.overlap = function(sample.overlap.file, phenos) {
 }
 
 get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phenos=NULL, input.dir=NULL) {
-	check.files.exist(c(input.info.file, sample.overlap.file, paste0(ref.prefix, c(".bim",".bed",".fam"))))
+	check.files.exist(c(input.info.file, sample.overlap.file))
+	prefix.data = check.reference(ref.prefix)
 	
 	input = new.env(parent=globalenv())
 	input$info = read.table(input.info.file, header=T, stringsAsFactors=F) # read in input info file
@@ -433,7 +448,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 	input$info$prop_cases = input$info$cases / input$info$N 				# get proportion cases
 	input$info$binary = !is.na(input$info$prop_cases) & (input$info$prop_cases != 1)	# infer binary phenotypes from prop_cases==1 or NA
 	input$P = length(input$info$phenotype)
-	input$ref.prefix = ref.prefix
+	input$reference = prefix.data
 	if (input$P > 1 & !is.null(sample.overlap.file)) { input$sample.overlap = process.sample.overlap(sample.overlap.file, phenos) } else { input$sample.overlap=NULL } # setting sample overlap to null if only one phenotype
 	
 	return(input)
@@ -453,7 +468,7 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #' @param sample.overlap.file Name of file with sample overlap information.
 #' Can be set to NULL if there is no overlap
 #' 
-#' @param ref.prefix Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)
+#' @param ref.prefix Prefix of reference genotype data in PLINK format (*.bim, *.bed, *.fam) or LAVA .bcor/.info LD files
 #' 
 #' @param phenos A vector of phenotype IDs can be provided if only a subset of phenotypes are desired
 #' (if NULL, all phenotypes in the input info file will be processed). 
@@ -472,10 +487,10 @@ get.input.info = function(input.info.file, sample.overlap.file, ref.prefix, phen
 #'     \item P - number of phenotypes
 #'     \item sample.overlap - sample overlap matrix
 #'     \item sum.stats - processed summary statistics (SNP aligned effect sizes, subsetted to common SNPs across data sets, effect sizes converted to Z, etc)
-#'     \item ref.prefix - genotype reference data prefix
+#'     \item ref.prefix - prefix of reference data
 #'     \item analysis.snps - subset of SNPs that are shared across all data sets and were not removed during alignment
 #'     \item unalignable.snps - SNPs removed during alignment (e.g. for being strand ambiguous)
-#'     \item ref - environment containing the genotype reference data bim file (ref$bim)
+#'     \item reference - environment containing the reference data SNP information
 #' }
 #' 
 #' @export
@@ -521,3 +536,143 @@ check.files.exist = function(infiles) {
 check.folders.exist = function(folders) {
 	if (!all(file.exists(folders))) { stop(paste0("Missing folder(s): '",paste0(folders[!file.exists(folders)],collapse=", '"),"'"),". Please ensure correct paths have been provided.") }
 }
+
+
+
+
+### Reference data ###
+
+
+check.reference = function(prefix) {
+	prefix.data = list(prefix = prefix)
+	
+	plink.files = paste0(prefix, c(".bim",".bed",".fam"))
+	if (!any(file.exists(plink.files))) {
+		prefix.data$mode = "ld"
+		if (grepl(".*_chr.+$", prefix)) {
+			chromosome = gsub(".*_chr(.+)$", "\\1", prefix)
+			if (!(chromosome %in% 1:23) || is.na(suppressWarnings(as.numeric(chromosome)))) stop(paste0("invalid chromosome '", chromosome, "' specified in prefix '", prefix, "'"))
+			
+			ld.files = paste0(prefix, c(".info", ".bcor"))
+			if (any(file.exists(ld.files))) {
+				check.files.exist(ld.files)
+				prefix.data$prefix = gsub("(.*)_chr[0-9]+$", "\\1", prefix)
+				prefix.data$chromosomes = as.numeric(chromosome)
+			}
+		} else {
+			prefix.data$prefix = prefix =  gsub("(.*)_chr$", "\\1", prefix)
+			
+			file.list = data.frame(file = Sys.glob(paste0(prefix, "_chr*.*")))
+			if (nrow(file.list) > 0) {file.list$type = substring(file.list$file, nchar(file.list$file) - 3); file.list = file.list[file.list$type %in% c("bcor", "info"),]}
+			if (nrow(file.list) > 0) {
+				spec = gsub(paste0(prefix, "_chr"), "", file.list$file, fixed=T)
+				file.list$chromosome = substring(spec, 0, nchar(spec)-5)	
+				file.list = file.list[file.list$chromosome %in% 1:23,]
+				if (nrow(file.list) > 0) {
+					file.list$chromosome = suppressWarnings(as.numeric(file.list$chromosome))
+					file.list = file.list[!is.na(file.list$chromosome),]
+					file.list = file.list[order(file.list$chromosome, file.list$type),]
+				}
+			}
+			
+			if (nrow(file.list) > 0) {
+				counts = aggregate(file.list$chromosome, list(chromosome=file.list$chromosome), length)
+				if (any(counts[,2] > 2)) stop(paste0("too many LD reference files with prefix '", prefix, "' for chromosome(s) ", paste(counts$chromosome[counts[,2] > 2], collapse=", ")))  
+				check.files.exist(unlist(lapply(paste0(prefix, "_chr", unique(file.list$chromosome)), function(b) {paste0(b, c(".bcor", ".info"))})))
+				
+				missing = which(!(1:23 %in% file.list$chromosome))
+				if (length(missing) > 0 && missing[1] != 23) warning(paste0("missing LD reference files with prefix '", prefix, "' for chromosome(s) ", paste(missing, collapse=", ")))
+				
+				prefix.data$chromosomes = unique(file.list$chromosome)					
+			}
+		}
+		if (length(prefix.data$chromosomes) == 0) stop("no PLINK genotype data or LD reference files with prefix '", prefix, "'")
+	} else {
+		check.files.exist(plink.files)
+		prefix.data$mode = "plink"
+	}
+	return(prefix.data)		
+}
+
+
+check.parameter = function(name, value, min.value=NULL, max.value=NULL) {
+	if (length(value) != 1 || !is.numeric(value) || !is.finite(value)) stop(paste0("value for parameter '", name, "' is not a number"))
+	if (!is.null(min.value) && value < min.value) stop(paste0("value for parameter '", name, "' should be equal to or greater than ", min.value))
+	if (!is.null(max.value) && value > max.value) stop(paste0("value for parameter '", name, "' should be equal to or smaller than ", max.value))
+	return(value)
+}
+
+
+
+load.reference = function(info) {
+	if (is.character(info) && length(info) == 1) info = check.reference(info)
+	if (is.null(info$mode) || !(info$mode %in% c("plink", "ld"))) stop("invalid reference data specified")
+	
+	output = as.environment(info)
+	if (info$mode == "ld") {
+		if (length(info$chromosomes) == 0) stop("invalid reference data specified")
+		output$chromosome.snps = lapply(1:23, function(i) {character(0)})
+		for (chr in sort(info$chromosomes)) {
+			files = paste0(info$prefix, "_chr", chr, c(".info", ".bcor")); check.files.exist(files)
+			snp.info = data.table::fread(files[1], data.table=F, showProgress=F); snp.info$SNP = tolower(snp.info$SNP)
+			output$snp.info = rbind(output$snp.info, snp.info)
+			output$chromosome.snps[[chr]] = snp.info$SNP
+		}
+	} else {
+		files = paste0(info$prefix, c(".bed", ".bim", ".fam")); check.files.exist(files)
+		output$sample.size = nrow(data.table::fread(files[3], data.table=F, showProgress=F))
+		output$snp.info = data.table::fread(files[2], data.table=F, showProgress=T)[,c(2,1,4,5,6)]
+		names(output$snp.info) = c("SNP", "CHR", "POS", "A1", "A2")			
+		output$snp.info$SNP = tolower(output$snp.info$SNP)		
+	}
+
+	return(output)
+}
+
+
+read.ld = function(reference, snp.ids, require.freq=F) {
+	if (is.null(reference$mode) || !(reference$mode %in% c("plink", "ld"))) stop("invalid reference data specified")
+	
+	use = which(reference$snp.info$SNP %in% snp.ids)
+	if (length(use) == 0) stop("none of specified SNP IDs are present in reference data")
+	
+	chromosome = unique(reference$snp.info$CHR[use])
+	if (length(chromosome) > 1) stop("SNPs in input span multiple chromosomes")
+	
+	output = list(mode = reference$mode, info=reference$snp.info[use,])
+	if (reference$mode == "plink") {
+		parameters = list(maf=0, mac=1, missing=0.05)
+		results = load_plink(reference$prefix, nrow(reference$snp.info), reference$sample.size, as.integer(use - 1), parameters)
+		if (length(results$include) > 0) {
+			use = use[results$include + 1]
+			output$info = reference$snp.info[use,]
+			output$data = results$data
+			colnames(output$data) = output$info$SNP
+			
+			if (require.freq) output$info$FREQ = apply(results$data, 2, sum, na.rm=T) / (nrow(results$data) - apply(is.na(results$data), 2, sum)) / 2	
+		} else stop("no SNPs remaining after filtering")
+	} else {
+		chr.snps = reference$chromosome.snps[[chromosome]]; use = which(chr.snps %in% snp.ids)
+		if (length(use) != nrow(output$info) || !all(chr.snps[use] == output$info$SNP)) stop("inconsistent SNP IDs when loading LD")
+		output$ld = load_ld(reference$prefix, chromosome, length(chr.snps), as.integer(use - 1))
+		rownames(output$ld) = colnames(output$ld) = chr.snps[use]
+	}
+	
+	return(output)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

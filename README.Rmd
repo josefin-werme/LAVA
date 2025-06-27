@@ -16,6 +16,9 @@ LAVA can analyse the standard bivariate local *r*~g~ between two phenotypes (bin
 
 The tutorial will show you how to install and run LAVA using some example input data. If you wish, you can inspect the data in the 'vignettes/data' folder.
 
+
+The current version of LAVA is version 0.1.5 (see [here](UPDATES.md) for update history). This update includes support for custom LAVA LD reference files, and LD reference based on a large UK Biobank cohort is now available for use with LAVA (linked below). We **strongly** recommend that users switch to using the UK Biobank reference instead of 1,000 Genomes for any analysis of European ancestry data, as use of the 1,000 Genomes data has been found [TODO: preprint link] to lead to possible inflation of type 1 error rates and bias in the local heritability estimates. 
+
 ------------------------------------------------------------------------
 
 ```{r, include = FALSE}
@@ -26,13 +29,6 @@ knitr::opts_chunk$set(
 ```
 
 ## Installing LAVA
-
-To read in the genotype data, LAVA uses functions from the snpStats package. As this package needs to be installed using BiocManager, you should do so before installing LAVA
-
-```{r, eval=F}
-if (!require("BiocManager", quietly=T)) install.packages("BiocManager")
-BiocManager::install("snpStats")
-```
 
 LAVA can be installed directly from github using the following command; add the argument 'build_vignettes=TRUE' to also install the vignettes (this may require installing Pandoc first, if not yet available on your system):
 
@@ -57,10 +53,10 @@ library(LAVA)
 
 #### As input, LAVA needs the following data:
 
--   **Reference genotype data** in plink format (.bim, .bed, .fam), used for the estimation of LD
+-   **LD reference data** in custom LAVA LD format or genotype data in PLINK format (.bed/.bim/.fam)
 
-    -   e.g. [1000 genomes](https://www.internationalgenome.org/data/) (pre-processed input files can be found [here](https://cncr.nl/research/lava/))
-
+    -   Preprocessed reference data files can be downloaded [here](REFERENCE.md)
+    
 -   **Input info file**, used for convenient processing of multiple phenotypes. Requires the columns:
 
     -   ***phenotype***: phenotype IDs
@@ -90,6 +86,8 @@ library(LAVA)
         -   ***B / BETA / OR / logOdds***: effect size coefficients
 
         -   ***P***: p-values
+        
+    -   ***GENE***: (optional) outcome gene, for use with eQTL data
 
 -   **Locus definition file**: File that defines loci either based on genomic coordinates or a list of SNPs (the locus file that we used in the LAVA preprint can be found in the support_data folder; this file was obtained via <https://github.com/cadeleeuw/lava-partitioning> using the g1000 data phase 3, build GRCh37/hg19). The locus file requires the following headers:
 
@@ -113,7 +111,7 @@ Run the script below to process the sample input files. If you wish, you can exa
 ### Read in summary statistics and related info
 input = process.input(input.info.file="vignettes/data/input.info.txt",           # input info file
                       sample.overlap.file="vignettes/data/sample.overlap.txt",   # sample overlap file (can be set to NULL if there is no overlap)
-                      ref.prefix="vignettes/data/g1000_test",                    # reference genotype data prefix
+                      ref.prefix="vignettes/data/g1000_test",                    # reference data prefix
                       phenos=c("depression","neuro","bmi"))       # subset of phenotypes listed in the input info file that we want to process
 
 # inspect the processed input data
@@ -132,8 +130,11 @@ head(input$ref$bim)   # bim file from reference data
 ?process.input()
 ```
 
-As you can see in the input\$info data frame, additional columns have been added to indicate whether phenotypes are binary, and what the the proportion of cases are for binary phenotypes (computed from the cases / controls columns). *(NOTE: the N column here is not used for the analysis, that currently needs to be provided via the summary statistics).*
+As you can see in the input\$info data frame, additional columns have been added to indicate whether phenotypes are binary, and what the the proportion of cases are for binary phenotypes (computed from the cases / controls columns) *(NOTE: the N column here is not used for the analysis, that currently needs to be provided via the summary statistics).*
 
+When using LAVA binary LD format reference data, the chromosome part should be omitted from the provided prefix (eg. "lava-ukb-v1.1" instead of "lava-ukb-v1.1_chr1") if you are intending to analyse multiple chromosomes. 
+  
+  
 ## Prepare a locus for analysis
 
 Before analysing the genetic correlation at a locus, we need to convert the marginal GWAS SNP effects within the locus to their corresponding joint effects (in order to account for the LD between SNPs), and estimate certain key parameter that are used for the analysis.

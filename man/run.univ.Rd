@@ -4,7 +4,7 @@
 \alias{run.univ}
 \title{Run univariate analysis}
 \usage{
-run.univ(locus, phenos = NULL, var = F)
+run.univ(locus, phenos = NULL, var = F, cap.estimates = T)
 }
 \arguments{
 \item{locus}{Locus object created using the the \code{\link{process.locus}} function. Contains all the relevant parameters and processed sum-stats for the phenotypes of interest}

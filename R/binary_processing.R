@@ -1,78 +1,31 @@
-### Joint logistic model for input processing of binary phenotypes ###
-fit.logistic = function(G, X, R, N.orig, case.prop, snp.stat, snp.N=NULL, n.iter=25, svar.thresh=1.75, phen.id, loc.id, dropped=c(), truncate=Inf, truncate.min=25) { #NB: update fit.logistic call if changing arguments
-	K = dim(G)[2]; K.block = dim(X)[2]; N.ref = dim(G)[1];
-	N1 = case.prop * N.orig; N.ratio = N.ref/N.orig
 
-	if (is.null(snp.N)) snp.N = rep(N.orig, K.block)
-	if (is.finite(truncate)) {
-		snp.stat[snp.stat > truncate] = truncate
- 		snp.stat[snp.stat < -truncate] = -truncate
-	}
 
-	beta.marg = matrix(NA, nrow=K.block, ncol=2) # third column stores a boolean indicator about the inferred scaling of the SNP (standardized vs unstandardized), fourth column stores error value
-	for (i in 1:K.block) beta.marg[i,] = find.beta(X[,i], case.prop*snp.N[i], snp.N[i], snp.stat[i]) #reconstruct marginal model b0 and b1 for each SNP
-	wty0 = N1*N.ratio; wty1 = get.wty(X, R, beta.marg) #adding the first for the model intercept, wty0 = t(1) %*% Y = sum(Y) = N1
-
-	comp.use = which(!(1:K %in% dropped))
-	while (length(comp.use) > 1) { # shouldn't get anywhere near 1 (unless locus is tiny to begin with I suppose), but just to guarantee the loop ends; K is rechecked against min.K in the calling locus.info function
-		W = cbind(1, G[,comp.use])
-		wty = c(wty0, wty1[comp.use])
-
-		beta = c(log(N1/(N.orig-N1)), rep(0, length(comp.use))) # set starting values to null model for now
-		for (i in 1:n.iter) {
-			mu = 1 / (1+exp(-W%*%beta))
-			s = as.numeric(mu * (1-mu))
-			wsw.inv = try(solve(t(W) %*% diag(s) %*% W),silent=T)	# going to just assume this is invertible, but since cor(W) = I it would be very strange if it weren't
-			if (class(wsw.inv)[1]=="try-error") {
-				truncate = ifelse(is.finite(truncate), truncate - 5, 35)
-				if (truncate >= truncate.min && any(abs(snp.stat) > truncate)) {
-			    print(paste0("Warning: multiple logistic regression model for phenotype '",phen.id,"' in locus ",loc.id," failed to converge (inversion error); retrying with SNP test statistic truncation at Z = +/- ", truncate));
-					return(fit.logistic(G, X, R, N.orig, case.prop, snp.stat, snp.N, n.iter, svar.thresh, phen.id, loc.id, dropped, truncate, truncate.min))
-				} else {
-					return(NA)
-				}
-			}
-			beta = beta + wsw.inv %*% (wty - t(W) %*% mu)
-		}
-		V = diag(wsw.inv)[-1]					# vector of sampling variances (excluding intercept)
-		svar.ratio = max(V) / quantile(V, 0.5)	# using ratio of max to median; will normally be very close to 1
-		if (svar.ratio < svar.thresh) break 	# if above threshold, drop the PC with highest sampling variance and rerun
-		comp.use = comp.use[-which.max(V)]
-	}
-
-	# h2
-	var.Y = case.prop*(1-case.prop) / (N.orig / (N.orig - 1))
-	var.Wb = sum(wty1[comp.use]^2) / ((N.orig-1)*N.ratio)^2
-
-	return(
-		list(
-			beta=beta[-1,],
-			var=mean(V) * N.ratio,
-			dropped=which(!(1:K %in% comp.use)),
-			h2.obs = 1 - (1 - var.Wb / var.Y) * ((N.orig-1) / (N.orig - length(comp.use) - 1))
-		)
-	)
-}
-
-# helper function
-# beta is a K.block x 2 matrix containing the b0 and b1 for the logistic regression model of each SNP
-get.wty = function(X, R, beta) {   
-	K = dim(beta)[1]; xty = rep(NA, K)
-	for (i in 1:K) {
-		mu = 1 / (1+exp(-(beta[i,1] + beta[i,2]*X[,i]))) 
-		xty[i] = sum(X[,i]*mu)
-	}
+process.binary = function(stat, N, freq, case.prop) {
+	freq[freq > 0.5] = 1 - freq[freq > 0.5]; N.case = N * case.prop; no.snps = length(stat)
 	
-	return(t(R) %*% xty)
+	corrs = c()
+	for (i in 1:no.snps) {
+		count.x = N[i] * c((1 - freq[i])^2, 2 * freq[i] * (1 - freq[i]), freq[i]^2); x = c(0,1,2)
+		beta = find.beta(count.x, N.case[i], N[i], stat[i]) 
+		
+		mu = 1 / (1+exp(-(beta[1] + beta[2] * x))) 
+		xty = sum(x * count.x * mu)
+		if (is.finite(xty)) {
+			sx = sum(count.x * x); sx2 = sum(count.x * x^2); sy = N.case[i]; 
+			var.x = (sx2 - sx^2 / N[i]) / (N[i] - 1)
+			var.y = (sy - sy^2 / N[i])  / (N[i] - 1)
+			cov.xy = (xty - sx*sy/N[i]) / (N[i] - 1)
+			if (var.x > 0 & var.y > 0) corrs[i] = cov.xy / sqrt(var.x*var.y)	
+		}
+	}
+	corrs[!is.finite(corrs)] = NA
+	return(corrs)
 }
 
 
 # This function reconstructs the b0 and b1 for the logistic regression of a single SNP from its test statistic
-find.beta = function(x, N1, N.orig, stat, tolerance=1e-5, reduction=0.25) {
-	tbl.x = table(x); tbl.x = tbl.x / sum(tbl.x) * N.orig; 
-	val.x = as.numeric(names(tbl.x))
-	n.x = as.numeric(tbl.x)
-	x = cbind(1, val.x)
+find.beta = function(count.x, N1, N.orig, stat, tolerance=1e-5, reduction=0.25) {
+	x = cbind(1, c(0,1,2))
 	
 	make.b1 = function(curr, value, step, N1, stat, x, n.x, reduction, tolerance) {
 		curr$b1 = value
@@ -86,9 +39,9 @@ find.beta = function(x, N1, N.orig, stat, tolerance=1e-5, reduction=0.25) {
 	}
 	
 	step = 0.01 * sign(stat); try.reverse = F
-	curr = make.b1(list(b0 = log(N1/(N.orig-N1))), 0, step, N1, stat, x, n.x, reduction, tolerance)
+	curr = make.b1(list(b0 = log(N1/(N.orig-N1))), 0, step, N1, stat, x, count.x, reduction, tolerance)
 	while (abs(step) > tolerance/10 && curr$err > tolerance) {
-		prop = update.b1(curr, step, N1, stat, x, n.x, reduction, tolerance)
+		prop = update.b1(curr, step, N1, stat, x, count.x, reduction, tolerance)
 		if (prop$err < curr$err) {
 			curr = prop
 			try.reverse = F

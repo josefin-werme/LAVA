@@ -39,8 +39,8 @@ com.pair = function(pair1, pair2) {
 }
 
 align = function(input, check.index=NULL) {
-	bim.snp.idx = input$ref$bim$snp.name %in% input$analysis.snps 										# index of analysis SNPs in orig bim file (these are ordered acc to the bim file)
-	ref.map = map.alleles(input$ref$bim$allele.1[bim.snp.idx], input$ref$bim$allele.2[bim.snp.idx])		# allele map for reference data
+	bim.snp.idx = input$reference$snp.info$SNP %in% input$analysis.snps 										# index of analysis SNPs in orig bim file (these are ordered acc to the bim file)
+	ref.map = map.alleles(input$reference$snp.info$A1[bim.snp.idx], input$reference$snp.info$A2[bim.snp.idx])		# allele map for reference data
   remove = NULL;
 	if (is.null(check.index)) { #added check.index code (cdl 17/3)
 		input$unalignable.snps = NULL
