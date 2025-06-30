@@ -1,6 +1,6 @@
 # Preprocessed reference data
 
-### UK Biobank reference in LAVA binary LD format, version 1.1
+### UK Biobank reference in LAVA binary LD format, version 1.1 (requires LAVA v0.1.5 or up)
 
 **Recommended for European ancestry analyses.** LD is computed from 100,000 unrelated individuals of European ancestry from the [UK Biobank](https://www.ukbiobank.ac.uk/), 
 up to a distance of 10 megabases for each SNP. Total filesize is 15 Gb (unzipped), stored per chromosome. Note that the LAVA binary LD file format is unrelated to the LDSTORE .bcor file format. 
