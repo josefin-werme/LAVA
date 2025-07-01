@@ -73,7 +73,7 @@ class Buffer {
 	
 public:
 	Buffer(unsigned long init_rows=0, unsigned long init_cols=1, bool zero=false) {this->set_size(init_rows, init_cols); if (zero) this->zero_fill();} 
-	Buffer(Buffer<T>&& other) : content(other.content), capacity(other.capacity), rows(other.elements), cols(other.cols) {other.content = 0;}
+	Buffer(Buffer<T>&& other) : content(other.content), capacity(other.capacity), rows(other.rows), cols(other.cols) {other.content = 0;}
 	~Buffer() {this->clear();}
 	
 	void clear() {delete[] this->content; this->content = 0; this->rows = this->cols = this->capacity = 0;}

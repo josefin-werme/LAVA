@@ -47,7 +47,8 @@ class BinaryLD {
 	
 	Buffer<float>& read_line(unsigned int snp_id);
 	Buffer<float>& read_float(unsigned long long offset, unsigned long long read_count, unsigned int no_values);
-	template<typename T, unsigned int ADD=0> Buffer<float>& read_integer(unsigned long long offset, unsigned long long read_count, unsigned int no_values);
+	template<typename T> Buffer<float>& read_integer(unsigned long long offset, unsigned long long read_count, unsigned int no_values);
+	template<typename T, unsigned int ADD> Buffer<float>& read_integer(unsigned long long offset, unsigned long long read_count, unsigned int no_values);
 	BlockData* load_block(unsigned int id, vector<unsigned int>& snps);
 	Buffer<float>& load_block_product(unsigned int id1, unsigned int id2);
 
