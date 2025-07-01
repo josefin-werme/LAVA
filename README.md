@@ -4,10 +4,18 @@ Josefin Werme (<j.werme@vu.nl>), Christiaan de Leeuw
 (<c.a.de.leeuw@vu.nl>), CTG Lab, VU Amsterdam
 2025-06-27
 
+**NOTE**: As of LAVA version 0.1.5, custom LAVA LD reference files based on a large UK Biobank cohort is
+now available for use with LAVA (linked below). We **strongly** recommend that users switch to using the UK Biobank reference instead of
+1,000 Genomes for any analysis of European ancestry data, as use of the 1,000 Genomes data has been found ***\[TODO: preprint link\]*** to lead to
+possible inflation of type 1 error rates and bias in the local heritability estimates due to its small sample size.
+
+------------------------------------------------------------------------
+
 The documentation and tutorial below shows you how to read in and
 analyse data with LAVA (**L**ocal **A**nalysis of \[co\]**V**ariant
 **A**ssociation): A tool developed for local genetic correlation
-(*r*<sub>g</sub>) analysis.
+(*r*<sub>g</sub>) analysis. The current version of LAVA is version 0.1.5 (see [here](UPDATES.md) for
+update history).
 
 LAVA can analyse the standard bivariate local *r*<sub>g</sub> between
 two phenotypes (binary as well as continuous), and account for known or
@@ -23,17 +31,6 @@ The tutorial will show you how to install and run LAVA using some
 example input data. If you wish, you can inspect the data in the
 ‘vignettes/data’ folder.
 
-The current version of LAVA is version 0.1.5 (see [here](UPDATES.md) for
-update history). This update includes support for custom LAVA LD
-reference files, and LD reference based on a large UK Biobank cohort is
-now available for use with LAVA (linked below). We **strongly**
-recommend that users switch to using the UK Biobank reference instead of
-1,000 Genomes for any analysis of European ancestry data, as use of the
-1,000 Genomes data has been found ***\[TODO: preprint link\]*** to lead to
-possible inflation of type 1 error rates and bias in the local
-heritability estimates.
-
-------------------------------------------------------------------------
 
 ## Installing LAVA
 
