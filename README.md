@@ -4,7 +4,7 @@ Josefin Werme (<j.werme@vu.nl>), Christiaan de Leeuw
 (<c.a.de.leeuw@vu.nl>), CTG Lab, VU Amsterdam
 2025-06-27
 
-**NOTE**: As of LAVA version 0.1.5, custom LAVA LD reference files based on a large UK Biobank cohort is
+**NOTE**: as of LAVA version 0.1.5, custom LAVA LD reference files based on a large UK Biobank cohort is
 now available for use with LAVA (linked below). We **strongly** recommend that users switch to using the UK Biobank reference instead of
 1,000 Genomes for any analysis of European ancestry data, as use of the 1,000 Genomes data has been found ***\[TODO: preprint link\]*** to lead to
 possible inflation of type 1 error rates and bias in the local heritability estimates due to its small sample size.
@@ -31,6 +31,7 @@ The tutorial will show you how to install and run LAVA using some
 example input data. If you wish, you can inspect the data in the
 ‘vignettes/data’ folder.
 
+------------------------------------------------------------------------
 
 ## Installing LAVA
 
