@@ -31,6 +31,8 @@ The tutorial will show you how to install and run LAVA using some
 example input data. If you wish, you can inspect the data in the
 ‘vignettes/data’ folder.
 
+To be kept informed about important LAVA updates, you can join the mailing list [here](mailto:c.a.de.leeuw@vu.nl?subject=lava-mailing-list).
+
 ------------------------------------------------------------------------
 
 ## Installing LAVA
