@@ -60,7 +60,7 @@ univariate.test = function(locus, phenos=NULL) {
 	
 	p = rep(NA, P)
 	for (i in 1:P) {
-		stat = sum(as.matrix(locus$delta[,phenos])[,i]^2) / as.matrix(locus$sigma[phenos,phenos])[i,i]
+		stat = sum(as.matrix(locus$delta[,phenos])[,i]^2) / as.matrix(locus$sigma[phenos,phenos])[i,i] * locus$nref.scale
 		p[i] = ifelse(locus$binary[phenos][i], pchisq(stat, locus$K, lower.tail=F), pf(stat/locus$K, locus$K, locus$N[phenos][i] - locus$K-1, lower.tail=F))
 	}
 	return(p)

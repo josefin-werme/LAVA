@@ -35,7 +35,7 @@
 #' @export
 
 
-process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, max.block.size=3000, cap.estimates=T) {
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, max.block.size=3000, nref.correction=T, cap.estimates=T) {
 	if (is.data.frame(locus) && nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a single locus at a time"); loc=NULL; return(NULL) }  # modified cdl 18/3
 	if (!(all(c("LOC","CHR","START","STOP") %in% names(locus)) | all(c("LOC","SNPS") %in% names(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
 	
@@ -128,17 +128,17 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	# Check remaining nr of PCs 
 	loc$K = ncol(R)
 	if (loc$K < min.K) { print(paste("Error: Fewer than",min.K,"PCs in locus",loc$id)); loc=NULL; return(NULL) } # K can drop below min.K during for-loop below, so need to check here; this also ensures the while is guaranteed to terminate
-		
+
+	loc$nref.scale = ifelse(nref.correction, (input$reference$sample.size - loc$K - 1) / (input$reference$sample.size - 1), 1)		
 
 	loc$sigma = loc$h2.obs = loc$h2.latent = rep(NA, loc$P); loc$ascertained.h2 = rep(F, loc$P); names(loc$sigma) = names(loc$h2.obs) = names(loc$h2.latent) = names(loc$ascertained.h2) = loc$phenos
 	loc$delta = matrix(NA, loc$K, loc$P); colnames(loc$delta) = loc$phenos 
-
 	for (i in loc$phenos) {
 		loc$delta[,i] = t(R) %*% loc.sum[[i]]$CORR 
 
-		eta = sum(loc$delta[,i]^2); eta = (loc$N[i]-1) / (loc$N[i]-loc$K-1) * (1-eta)
-		loc$sigma[i] = eta/(loc$N[i]-1)
-		loc$h2.obs[i] = 1 - eta
+		dtd = sum(loc$delta[,i]^2)
+		loc$sigma[i] = (1 - dtd) / (loc$N[i]-loc$K-1)
+		loc$h2.obs[i] = (dtd - loc$sigma[i] * loc$K) * loc$nref.scale 
 		
 		if (loc$binary[i]) {
 			case.proportion = input$info$prop_cases[input$info$phenotype == i]
@@ -161,7 +161,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	if (any(loc$K / loc$N > thresh.ratio)) {for (var in grep("^h2", names(loc), value=T)) loc[[var]][loc$K/loc$N > thresh.ratio] = NA}
 
 	# get full omega
-	loc$omega = t(loc$delta)%*%loc$delta / loc$K - loc$sigma
+	loc$omega = (t(loc$delta)%*%loc$delta / loc$K - loc$sigma) * loc$nref.scale 
 	loc$omega.cor = suppressWarnings(cov2cor(loc$omega))
 
 
@@ -231,8 +231,8 @@ decompose.ld = function(ld, prune.thresh, max.block.size) {
 			Q = decomp$vectors
 		}
 	}
-		
-	cum.perc = cumsum(lambda / sum(lambda) * 100)
+
+	cum.perc = cumsum(lambda); cum.perc = cum.perc / max(cum.perc) * 100
 	K = min(which(cum.perc >= prune.thresh))
 	return(Q[,1:K] %*% diag(1/sqrt(lambda[1:K])))
 }
@@ -618,6 +618,7 @@ load.reference = function(info) {
 			output$snp.info = rbind(output$snp.info, snp.info)
 			output$chromosome.snps[[chr]] = snp.info$SNP
 		}
+		output$sample.size = max(output$snp.info$NOBS)
 	} else {
 		files = paste0(info$prefix, c(".bed", ".bim", ".fam")); check.files.exist(files)
 		output$sample.size = nrow(data.table::fread(files[3], data.table=F, showProgress=F))
