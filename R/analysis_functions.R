@@ -21,7 +21,7 @@
 #' 
 #' @export
 #' 
-run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
+run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25, cap.estimates=T) {
 	if (is.null(phenos)) { 
 		phenos = locus$phenos 
 	} else { 
@@ -35,13 +35,13 @@ run.univ.bivar = function(locus, phenos=NULL, target=NULL, univ.thresh=.05, adap
 		if (! target %in% phenos) { phenos = c(phenos,target) }		# append target to phenos if not already present
 	}
 	# univariate analysis
-	univ = run.univ(locus, phenos)
+	univ = run.univ(locus, phenos, cap.estimates=cap.estimates)
 	
 	# bivariate analysis
 	bivar = NULL
 	if (sum(univ$p < univ.thresh) > 1) {
 		if (is.null(target) || subset(univ, phen==target)$p < univ.thresh) { 
-			bivar = run.bivar(locus, phenos = as.character(subset(univ, p < univ.thresh)$phen), target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim)
+			bivar = run.bivar(locus, phenos = as.character(subset(univ, p < univ.thresh)$phen), target=target, adap.thresh=adap.thresh, p.values=p.values, CIs=CIs, param.lim=param.lim, cap.estimates=cap.estimates)
 		}
 	}
 	return(list(univ=univ, bivar=bivar))
@@ -60,7 +60,7 @@ univariate.test = function(locus, phenos=NULL) {
 	
 	p = rep(NA, P)
 	for (i in 1:P) {
-		stat = sum(as.matrix(locus$delta[,phenos])[,i]^2) / as.matrix(locus$sigma[phenos,phenos])[i,i]
+		stat = sum(as.matrix(locus$delta[,phenos])[,i]^2) / as.matrix(locus$sigma[phenos,phenos])[i,i] * locus$nref.scale
 		p[i] = ifelse(locus$binary[phenos][i], pchisq(stat, locus$K, lower.tail=F), pf(stat/locus$K, locus$K, locus$N[phenos][i] - locus$K-1, lower.tail=F))
 	}
 	return(p)
@@ -84,7 +84,7 @@ univariate.test = function(locus, phenos=NULL) {
 #'     \item p - p-values from the univariate test (F-test for continuous, Chi-sq for binary)
 #' }
 #' @export
-run.univ = function(locus, phenos=NULL, var=F) {
+run.univ = function(locus, phenos=NULL, var=F, cap.estimates=T) {
 	if (is.null(phenos)) { 
 		phenos = locus$phenos 
 	} else {
@@ -94,8 +94,12 @@ run.univ = function(locus, phenos=NULL, var=F) {
 	
 	univ = data.frame(phen = phenos)
 	if (var) { univ$var = signif(diag(as.matrix(locus$omega[phenos,phenos])), 6) }
-	univ$h2.obs = signif(locus$h2.obs[phenos], 6)
-	if (any(!is.na(locus$h2.latent[phenos]))) { univ$h2.latent = signif(locus$h2.latent[phenos],6) } #modified cdl 18/3
+	univ$h2.obs = signif(locus$h2.obs[phenos], 6); if (cap.estimates) univ$h2.obs[univ$h2.obs < 0] = 0
+	if (any(!is.na(locus$h2.latent[phenos]))) { 
+		univ$h2.latent = signif(locus$h2.latent[phenos],6) 
+		if (cap.estimates) univ$h2.latent[univ$h2.latent < 0] = 0
+		univ$ascertained = locus$ascertained.h2[phenos]
+	} 
 	univ$p = signif(univariate.test(locus, phenos), 6)
 	return(univ)
 }
@@ -128,7 +132,7 @@ run.univ = function(locus, phenos=NULL, var=F) {
 #'     \item p - simulation p-values for the local genetic correlation
 #' }
 #' @export
-run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25) {
+run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6), p.values=T, CIs=T, param.lim=1.25, cap.estimates=T) {
 	if (is.null(phenos)) { 
 		phenos = locus$phenos
 	} else {
@@ -166,8 +170,10 @@ run.bivar = function(locus, phenos=NULL, target=NULL, adap.thresh=c(1e-4, 1e-6),
 	}
 	# filter any estimates that are too far out of bounds
 	bivar = filter.params(data = bivar, locus.id = locus$id, params = c(params, ci.params, "p"), param.lim = param.lim, label="correlation")	# first param in data set must be gamma/rho; params argument just needs to list those that will be set to NA if rho is too far out of bounds
-	# cap out of bounds values (CI's are already capped)
-	for (p in params) { bivar[[p]] = cap(bivar[[p]], lim=c(ifelse(p=="r2", 0, -1), 1)) }	# capping rhos at -1/1, and r2s at 0/1
+	
+	if (cap.estimates) {# cap out of bounds values (CI's are already capped)
+		for (p in params) { bivar[[p]] = cap(bivar[[p]], lim=c(ifelse(p=="r2", 0, -1), 1)) }	# capping rhos at -1/1, and r2s at 0/1
+	}
 	colnames(bivar)[which(colnames(bivar)=="coef")] = "rho"
 	
 	return(bivar[,c("phen1","phen2","rho","rho.lower","rho.upper","r2","r2.lower","r2.upper","p")])

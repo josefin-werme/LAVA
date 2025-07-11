@@ -11,7 +11,9 @@ process.locus(
   min.K = 2,
   prune.thresh = 99,
   max.prop.K = 0.75,
-  drop.failed = T
+  drop.failed = T,
+  max.block.size = 3000,
+  cap.estimates = T
 )
 }
 \arguments{

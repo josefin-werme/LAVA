@@ -20,7 +20,7 @@ For continuous phenotypes, the number of controls should be set to 0, while case
 \item{sample.overlap.file}{Name of file with sample overlap information.
 Can be set to NULL if there is no overlap}
 
-\item{ref.prefix}{Prefix of reference genotype data in plink format (*.bim, *.bed, *.fam)}
+\item{ref.prefix}{Prefix of reference genotype data in PLINK format (*.bim, *.bed, *.fam) or LAVA .bcor/.info LD files}
 
 \item{phenos}{A vector of phenotype IDs can be provided if only a subset of phenotypes are desired
 (if NULL, all phenotypes in the input info file will be processed). 
@@ -40,10 +40,10 @@ An object containing processed input data and related info
     \item P - number of phenotypes
     \item sample.overlap - sample overlap matrix
     \item sum.stats - processed summary statistics (SNP aligned effect sizes, subsetted to common SNPs across data sets, effect sizes converted to Z, etc)
-    \item ref.prefix - genotype reference data prefix
+    \item ref.prefix - prefix of reference data
     \item analysis.snps - subset of SNPs that are shared across all data sets and were not removed during alignment
     \item unalignable.snps - SNPs removed during alignment (e.g. for being strand ambiguous)
-    \item ref - environment containing the genotype reference data bim file (ref$bim)
+    \item reference - environment containing the reference data SNP information
 }
 }
 \description{

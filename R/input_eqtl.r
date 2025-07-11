@@ -176,7 +176,7 @@ process.eqtl.input = function(gwas.input, eqtl.file.spec, chromosomes="all", sam
 #' Modifies the eQTL input object prepared by the process.eqtl.input() function, loading and initializing summary statistics for the specified tissue. Removes data loaded
 #' for previously loaded tissue (if any).
 #'
-#' @param gwas.input GWAS input object preprocessed using \code{\link{process.eqtl.input}} (object is modified by function).
+#' @param gwas.input GWAS input object preprocessed using \code{\link{process.eqtl.input.preprocessed}} (object is modified by function).
 #'
 #' @param tissue Tissue to load summary statistics for.
 #'
@@ -221,7 +221,7 @@ set.tissue = function(gwas.input, tissue) {
 #'
 #' Load the eQTL gene annotation for the specified chromosomes into the gwas.input object. Previously loaded gene annotation is replaced
 #'
-#' @param gwas.input GWAS input object loaded using \code{\link{process.eqtl.input}} (object is modified by function).
+#' @param gwas.input GWAS input object loaded using \code{\link{process.eqtl.input.preprocessed}} (object is modified by function).
 #'
 #' @param chromosomes Specifies which chromosomes to load the annotation data for (loading all chromosomes may be time-consuming).
 #' Can be set to 'all' to load all chromosomes, 'auto' to load all autosomal chromosomes, or a vector of chromosome numbers or single chromosome number (the X chromosome can be specified as 'X' or 23).
@@ -284,8 +284,8 @@ set.chromosomes = function(gwas.input, chromosomes) {
 			sum.stats = sum.stats[sum.stats$SNP %in% gwas.input$analysis.snps,] #subset to SNPs available for other phenotypes
 
 			# align to reference data, remove ambiguous / non-matched SNPs
-			bim.index = match(sum.stats$SNP, gwas.input$ref$bim$snp.name)
-			bim.map = map.alleles(gwas.input$ref$bim$allele.1[bim.index], gwas.input$ref$bim$allele.2[bim.index])
+			bim.index = match(sum.stats$SNP, gwas.input$reference$snp.info$SNP)
+			bim.map = map.alleles(gwas.input$reference$snp.info$A1[bim.index], gwas.input$reference$snp.info$A2[bim.index])
 			alignment = com.pair(bim.map, map.alleles(sum.stats$A1, sum.stats$A2))
 			sum.stats$STAT = sum.stats$STAT * alignment
 			sum.stats = sum.stats[!is.na(sum.stats$STAT),]

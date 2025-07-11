@@ -1,6 +1,6 @@
 Package: LAVA
 Title: Local Analysis of [co]Variant Association
-Version: 0.1.3
+Version: 0.1.5
 Authors@R: c(person("Josefin", "Werme", email = "j.werme@vu.nl", role = c("aut", "cre")), person("Christiaan", "de Leeuw", email = "c.a.de.leeuw@vu.nl", role = c("aut")))
 Description: A tool for bivariate and multivariate local genetic correlation analysis. 
 Depends: R (>= 3.5.0)
@@ -8,9 +8,10 @@ License: All rights reserved
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.1
+LinkingTo: 
+    cpp11
 Imports: 
     data.table,
-    snpStats,
     matrixsampling
 Suggests: 
     knitr,

@@ -7,7 +7,7 @@
 set.tissue(gwas.input, tissue)
 }
 \arguments{
-\item{gwas.input}{GWAS input object preprocessed using \code{\link{process.eqtl.input}} (object is modified by function).}
+\item{gwas.input}{GWAS input object preprocessed using \code{\link{process.eqtl.input.preprocessed}} (object is modified by function).}
 
 \item{tissue}{Tissue to load summary statistics for.}
 }

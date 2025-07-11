@@ -11,7 +11,8 @@ run.bivar(
   adap.thresh = c(1e-04, 1e-06),
   p.values = T,
   CIs = T,
-  param.lim = 1.25
+  param.lim = 1.25,
+  cap.estimates = T
 )
 }
 \arguments{
