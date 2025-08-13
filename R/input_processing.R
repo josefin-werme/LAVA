@@ -71,7 +71,8 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	
 
 	# load LD data
-	ld = read.ld(input$reference, loc$snps, require.freq=any(loc$binary))
+	ld = catchErrors(read.ld(input$reference, loc$snps, require.freq=any(loc$binary)))
+	if (is.null(ld)) {loc = NULL; return(NULL)}
 	if (!all(ld$info$SNP %in% loc$snps)) stop("inconsistency in loaded SNPs")
 	
 	loc$snps = ld$info$SNP; loc$n.snps = length(loc$snps)
@@ -116,7 +117,8 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 
 
 	# decompose
-	R = decompose.ld(ld, prune.thresh, max.block.size)
+	R = catchErrors(decompose.ld(ld, prune.thresh, max.block.size))
+	if (is.null(R)) {loc = NULL; return(NULL)}
 	
 	# cap the number of PCs at a proportion of the (lowest) GWAS input sample size (cdl 16/3)
 	if (!is.null(max.prop.K) && !is.na(max.prop.K)) {
@@ -191,6 +193,17 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 	}
 	return(loc)
 }
+
+
+catchErrors = function(expr, do.print=T) {
+	res = try(expr, silent=T)
+	if (inherits(res, "try-error")) {
+		msg = attr(res, "condition")$message
+		if (do.print) print(paste0("Error: ", ifelse(!is.null(msg), msg, "unknown error")))
+		return(NULL)			
+	} else return(res)
+}
+
 
 
 decompose.ld = function(ld, prune.thresh, max.block.size) {
