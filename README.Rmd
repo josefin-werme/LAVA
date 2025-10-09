@@ -105,7 +105,8 @@ library(LAVA)
 
 -   **Sample overlap file** (optional)
 
-    -   This can be obtained using the results from cross-trait LDSC (see the 'vignettes/sample_overlap.Rmd' file for a walk through on how to do this)
+    -   This can be obtained using the results from cross-trait LDSC (see [vignettes/sample_overlap.md](vignettes/sample_overlap.md) for a walk through on how to do this)
+
 
 ## Process input
 
