@@ -324,6 +324,7 @@ set.chromosomes = function(gwas.input, chromosomes) {
 #' @param prune.thresh PC pruning threshold governing the maximum number of PCs to retain.
 #' @param max.prop.K Upper bound on retained number of PCs as proportion of lowest sample size of input data.
 #' @param drop.failed Determines if failed phenotypes are removed from the output object (default) or retained.
+#' @param ld.decomposition Method used to decompose the LD of individual-level reference data, "gram" (default) or "svd"; see \code{\link{process.locus}}.
 #' PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
 #'
 #' @return Returns an environment containing general locus info, the processed locus related sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL.
@@ -348,7 +349,7 @@ set.chromosomes = function(gwas.input, chromosomes) {
 #' }
 #'
 #' @export
-process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T) {
+process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, ld.decomposition=c("gram", "svd")) {
 	if (!all(c("eqtl.genes", "eqtl.type") %in% names(eqtl.input)) || !any(eqtl.input$info$var.type == eqtl.input$eqtl.type)) {print("Error: eqtl.input is not configured for eQTL analysis"); return(invisible(NULL))}
 	if (eqtl.input$eqtl.preprocessed && is.null(eqtl.input$current.tissue)) {print("Error: no tissue initialized; run set.tissue function to load tissue data"); return(NULL)}
 
@@ -392,7 +393,7 @@ process.eqtl.locus = function(gene, eqtl.input, phenos=NULL, min.K=2, prune.thre
 	class(locus) = "gene"
 
 	if (!is.null(phenos)) phenos = unique(c(phenos, eqtl.input$eqtl.type))
-	return(process.locus(locus, eqtl.input, phenos, min.K, prune.thresh, max.prop.K, drop.failed))
+	return(process.locus(locus, eqtl.input, phenos, min.K, prune.thresh, max.prop.K, drop.failed, ld.decomposition=match.arg(ld.decomposition)))
 }
 
 

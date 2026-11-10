@@ -13,7 +13,8 @@ process.locus(
   max.prop.K = 0.75,
   drop.failed = T,
   max.block.size = 3000,
-  cap.estimates = T
+  cap.estimates = T,
+  ld.decomposition = c("gram", "svd")
 )
 }
 \arguments{
@@ -29,6 +30,11 @@ process.locus(
 
 \item{drop.failed}{Determines if failed phenotypes are removed from the output object (default) or retained.
 PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).}
+
+\item{ld.decomposition}{Method used to decompose the LD of individual-level (PLINK) reference data. "gram" (default) takes the eigendecomposition of the smaller Gram matrix
+of the standardised reference genotypes (X'X or XX'), which gives the same eigenvalues and principal components as "svd" (the singular value decomposition of the genotype matrix used in earlier versions)
+but avoids computing the unused left singular vectors, making it much faster for large reference samples. If the "gram" route fails or is numerically unreliable, LAVA falls back to "svd" automatically.
+Has no effect for pre-computed LD reference files.}
 
 \item{loc}{Locus info for a single locus, obtained using the \code{\link{read.loci}} function. Expects a locus ID ('LOC') together with locus coordinates ('CHR', 'START', 'STOP') and/or a ';' separated SNP list ('SNPS')}
 }

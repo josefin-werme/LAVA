@@ -11,7 +11,8 @@ process.eqtl.locus(
   min.K = 2,
   prune.thresh = 99,
   max.prop.K = 0.75,
-  drop.failed = T
+  drop.failed = T,
+  ld.decomposition = c("gram", "svd")
 )
 }
 \arguments{
@@ -30,6 +31,8 @@ relevant summary statistics and related info (e.g. sample overlap, case/control 
 
 \item{drop.failed}{Determines if failed phenotypes are removed from the output object (default) or retained.
 PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).}
+
+\item{ld.decomposition}{Method used to decompose the LD of individual-level reference data, "gram" (default) or "svd"; see \code{\link{process.locus}}.}
 }
 \value{
 Returns an environment containing general locus info, the processed locus related sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL.
