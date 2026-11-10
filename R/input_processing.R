@@ -10,6 +10,10 @@
 #' @param max.prop.K Upper bound on retained number of PCs as proportion of lowest sample size of input data.
 #' @param drop.failed Determines if failed phenotypes are removed from the output object (default) or retained.
 #' PCs are selected as such that the cumulative proportion of variance explained is at least that of the threshold (set to 99 percent by default).
+#' @param ld.decomposition Method used to decompose the LD of individual-level (PLINK) reference data. "gram" (default) takes the eigendecomposition of the smaller Gram matrix
+#' of the standardised reference genotypes (X'X or XX'), which gives the same eigenvalues and principal components as "svd" (the singular value decomposition of the genotype matrix used in earlier versions)
+#' but avoids computing the unused left singular vectors, making it much faster for large reference samples. If the "gram" route fails or is numerically unreliable, LAVA falls back to "svd" automatically.
+#' Has no effect for pre-computed LD reference files.
 #' 
 #' @return Returns an environment containing general locus info, the processed locus related sumstats, and parameters required for analysis. If the function fails (e.g. due to too few SNPs), it will return NULL. 
 #' If processing fails for specific phenotypes, only the successful phenotypes will be returned (unless the drop.failed argument is set to true).
@@ -35,7 +39,8 @@
 #' @export
 
 
-process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, max.block.size=3000, cap.estimates=T) {nref.correction=F
+process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, max.prop.K=0.75, drop.failed=T, max.block.size=3000, cap.estimates=T, ld.decomposition=c("gram", "svd")) {nref.correction=F
+	ld.decomposition = match.arg(ld.decomposition)
 	if (is.data.frame(locus) && nrow(locus)!=1) { print("Error: Locus info provided for incorrect number of loci. Please provide only a single locus at a time"); loc=NULL; return(NULL) }  # modified cdl 18/3
 	if (!(all(c("LOC","CHR","START","STOP") %in% names(locus)) | all(c("LOC","SNPS") %in% names(locus)))) { print("Error: Locus info data frame is missing some or all of the required headers ('LOC' + 'CHR','START','STOP' and/or 'SNPS')"); loc=NULL; return(NULL) }
 	
@@ -117,7 +122,7 @@ process.locus = function(locus, input, phenos=NULL, min.K=2, prune.thresh=99, ma
 
 
 	# decompose
-	R = catchErrors(decompose.ld(ld, prune.thresh, max.block.size))
+	R = catchErrors(decompose.ld(ld, prune.thresh, max.block.size, ld.decomposition))
 	if (is.null(R)) {loc = NULL; return(NULL)}
 	
 	# cap the number of PCs at a proportion of the (lowest) GWAS input sample size (cdl 16/3)
@@ -206,10 +211,15 @@ catchErrors = function(expr, do.print=T) {
 
 
 
-decompose.ld = function(ld, prune.thresh, max.block.size) {
+decompose.ld = function(ld, prune.thresh, max.block.size, ld.decomposition="gram") {
 	if (ld$mode == "plink") {
 		X = scale(ld$data); X[is.na(X)] = 0; X = scale(X) 	
 		N.ref = nrow(X)
+		
+		if (ld.decomposition == "gram") {
+			R = decompose.gram(X, prune.thresh)
+			if (!is.null(R)) return(R)	# if the Gram route failed or was unreliable, fall through to svd below
+		}
 		
 		svd = try(svd(X), silent=T)					# try svd
 		if (class(svd) == "try-error") { svd = try(svd(X), silent=T) } 	# if fails, try again (some randomness causing error occasionally)
@@ -247,6 +257,33 @@ decompose.ld = function(ld, prune.thresh, max.block.size) {
 
 	cum.perc = cumsum(lambda); cum.perc = cum.perc / max(cum.perc) * 100
 	K = min(which(cum.perc >= prune.thresh))
+	return(Q[,1:K] %*% diag(1/sqrt(lambda[1:K])))
+}
+
+
+# Same output as the svd(X) route of decompose.ld (eigenvalues lambda = d^2 / (N.ref-1) and right singular vectors Q = V,
+# pruned with the same rule), computed from the eigendecomposition of the smaller Gram matrix of X: X'X (no.snps x no.snps)
+# if N.ref >= no.snps, otherwise XX' (N.ref x N.ref), with V = X'U / d recovered for the retained components only.
+# svd(X) also computes the N.ref x min(N.ref, no.snps) left singular vectors, which are not used; avoiding them makes this
+# much faster when N.ref is large. Eigenvectors are unique only up to sign, as in svd; downstream results depend on the
+# PCs only through R %*% t(R) and K, so the sign does not matter.
+# Forming the Gram matrix squares the condition number, so this returns NULL (caller falls back to svd) if the input is not
+# finite, the eigendecomposition fails, or any retained eigenvalue is below rel.tol times the largest one.
+decompose.gram = function(X, prune.thresh, rel.tol=sqrt(.Machine$double.eps)) {
+	N.ref = nrow(X); no.snps = ncol(X)
+	if (any(!is.finite(X))) return(NULL)
+	use.snps = N.ref >= no.snps
+	G = if (use.snps) crossprod(X) else tcrossprod(X)
+	decomp = try(eigen(G / (N.ref-1), symmetric=T), silent=T)
+	if (inherits(decomp, "try-error") || any(!is.finite(decomp$values))) return(NULL)
+	lambda = pmax(decomp$values, 0)	# d^2 from svd is non-negative; clamp round-off below zero
+	
+	cum.perc = cumsum(lambda); cum.perc = cum.perc / max(cum.perc) * 100
+	K = min(which(cum.perc >= prune.thresh))
+	if (!(lambda[K] > rel.tol * lambda[1])) return(NULL)
+	
+	Q = decomp$vectors[, 1:K, drop=F]
+	if (!use.snps) Q = crossprod(X, Q) %*% diag(1/sqrt((N.ref-1) * lambda[1:K]), nrow=K)	# V = X'U D^-1, with d^2 = (N.ref-1) * lambda
 	return(Q[,1:K] %*% diag(1/sqrt(lambda[1:K])))
 }
 	
